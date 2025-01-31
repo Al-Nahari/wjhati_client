@@ -162,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}',
                 tileProvider: CachingNetworkTileProvider(),
                 additionalOptions: {
-                  'accessToken': 'pk.eyJ1IjoidmlydHVzc29mdCIsImEiOiJjbTZrbnp6YTMwMDc4MmpzODBpbTEyeHJtIn0.rBHlP-HWiu071UUoq6E7mA', // استبدل بالمفتاح الصحيح
+                  'accessToken': 'pk.fgf.rBHlP-HWiu071UUoq6E7mA', // استبدل بالمفتاح الصحيح
                   'id': 'mapbox/streets-v11',
                 },
               ),
