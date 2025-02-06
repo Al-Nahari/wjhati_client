@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
+import 'package:untitled5/screens/home_screen.dart';
 
+import 'screens/complaint_screen.dart';
+import 'screens/trip_tracking_screen.dart';
+import 'screens/wallet_screen.dart';
 void main() {
   runApp(const MyApp());
 }
@@ -17,7 +20,12 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
-      home: const HomeScreen(),
+      routes: {
+        '/': (ctx) => HomeScreen(),
+        '/Complaint': (ctx) => ComplaintScreen(),
+        '/TripTracking': (ctx) => TripTrackingScreen(),
+        '/Wallet': (ctx) => WalletScreen(),
+      },
     );
   }
 }

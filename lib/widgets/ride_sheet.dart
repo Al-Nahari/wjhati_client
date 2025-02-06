@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 
-Widget buildRideSheet(BuildContext context) {
+Widget buildRideSheet(
+    BuildContext context, {
+      required VoidCallback onConfirm,
+      required TextEditingController departureController,
+      required TextEditingController passengersController,
+      required TextEditingController notesController,
+    }) {
   return DraggableScrollableSheet(
-    initialChildSize: 0.18,
-    minChildSize: 0.18,
-    maxChildSize: 0.8,
+    initialChildSize: 0.17,
+    minChildSize: 0.17,
+    maxChildSize: 0.6,
     builder: (context, scrollController) {
       return Container(
         decoration: BoxDecoration(
@@ -33,25 +39,45 @@ Widget buildRideSheet(BuildContext context) {
               ),
             ),
             const SizedBox(height: 20),
+            // خيارات نوع الرحلة (مثال)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildIconOption(Icons.directions_car, 'UberX', Colors.blue, () {}),
-                _buildIconOption(Icons.car_rental, 'Uber Black', Colors.black, () {}),
-                _buildIconOption(Icons.airport_shuttle, 'Uber XL', Colors.green, () {}),
+                _buildIconOption(
+                    Icons.directions_car, 'UberX', Colors.blue, () {}),
+                _buildIconOption(
+                    Icons.car_rental, 'Uber Black', Colors.black, () {}),
+                _buildIconOption(
+                    Icons.airport_shuttle, 'Uber XL', Colors.green, () {}),
               ],
             ),
             const SizedBox(height: 30),
-            _buildInputField('الاسم الكامل', Icons.person, TextInputType.text),
+            // حقل عدد الركاب
+            _buildInputField(
+              "عدد الركاب",
+              Icons.people,
+              TextInputType.number,
+              controller: passengersController,
+            ),
             const SizedBox(height: 15),
-            _buildInputField('رقم الهاتف', Icons.phone, TextInputType.phone),
+            // حقل تاريخ الرحلة
+            _buildDateField(
+              context,
+              "تاريخ الرحلة",
+              Icons.calendar_today,
+              controller: departureController,
+            ),
             const SizedBox(height: 15),
-            _buildDateField(context, 'تاريخ الرحلة', Icons.calendar_today),
-            const SizedBox(height: 15),
-            _buildInputField('ملاحظات إضافية', Icons.note, TextInputType.multiline),
+            // حقل الملاحظات
+            _buildInputField(
+              "ملاحظات إضافية",
+              Icons.note,
+              TextInputType.multiline,
+              controller: notesController,
+            ),
             const SizedBox(height: 30),
             ElevatedButton(
-              onPressed: () {},
+              onPressed: onConfirm,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
                 padding: const EdgeInsets.symmetric(vertical: 15),
@@ -71,6 +97,59 @@ Widget buildRideSheet(BuildContext context) {
   );
 }
 
+/// حقل إدخال نصي مع إمكانية تمرير Controller (إن وجد)
+Widget _buildInputField(String hintText, IconData icon, TextInputType keyboardType, {TextEditingController? controller}) {
+  return TextField(
+    controller: controller,
+    decoration: InputDecoration(
+      hintText: hintText,
+      prefixIcon: Icon(icon, color: Colors.blue),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.blue),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.blue),
+      ),
+    ),
+    keyboardType: keyboardType,
+  );
+}
+
+/// حقل تاريخ يتم اختياره من خلال DatePicker ويتم تحديث نصه بواسطة Controller
+Widget _buildDateField(BuildContext context, String hintText, IconData icon, {required TextEditingController controller}) {
+  return TextField(
+    controller: controller,
+    decoration: InputDecoration(
+      hintText: hintText,
+      prefixIcon: Icon(icon, color: Colors.grey),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.grey),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.blue),
+      ),
+    ),
+    readOnly: true,
+    onTap: () async {
+      DateTime? pickedDate = await showDatePicker(
+        context: context,
+        initialDate: DateTime.now(),
+        firstDate: DateTime(2000),
+        lastDate: DateTime(2100),
+      );
+      if (pickedDate != null) {
+        // تحويل التاريخ إلى صيغة ISO 8601 كما في البيانات
+        controller.text = pickedDate.toUtc().toIso8601String();
+      }
+    },
+  );
+}
+
+/// خيار أيقونة بسيط مع تسمية
 Widget _buildIconOption(IconData icon, String label, Color color, VoidCallback onTap) {
   return GestureDetector(
     onTap: onTap,
@@ -87,56 +166,10 @@ Widget _buildIconOption(IconData icon, String label, Color color, VoidCallback o
         const SizedBox(height: 10),
         Text(
           label,
-          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color),
+          style: TextStyle(
+              fontSize: 14, fontWeight: FontWeight.bold, color: color),
         ),
       ],
     ),
-  );
-}
-
-Widget _buildInputField(String hintText, IconData icon, TextInputType keyboardType) {
-  return TextField(
-    decoration: InputDecoration(
-      hintText: hintText,
-      prefixIcon: Icon(icon, color: Colors.blue),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.blue),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.blue),
-      ),
-    ),
-    keyboardType: keyboardType,
-  );
-}
-
-Widget _buildDateField(BuildContext context, String hintText, IconData icon) {
-  return TextField(
-    decoration: InputDecoration(
-      hintText: hintText,
-      prefixIcon: Icon(icon, color: Colors.grey),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.grey),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: BorderSide(color: Colors.blue),
-      ),
-    ),
-    readOnly: true,
-    onTap: () async {
-      DateTime? pickedDate = await showDatePicker(
-        context: context,
-        initialDate: DateTime.now(),
-        firstDate: DateTime(2000),
-        lastDate: DateTime(2100),
-      );
-      if (pickedDate != null) {
-        // يمكن تحديث الحالة أو عرض التاريخ المحدد كما ترغب
-      }
-    },
   );
 }
