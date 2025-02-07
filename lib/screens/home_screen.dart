@@ -8,7 +8,6 @@ import 'package:http/http.dart' as http;
 
 import '../widgets/drawer.dart';
 import '../widgets/location_button.dart';
-import '../widgets/ride_sheet.dart';
 import '../widgets/top_navigation.dart';
 import '../models/location.dart';
 import '../services/location_service.dart';
@@ -25,10 +24,13 @@ class _HomeScreenState extends State<HomeScreen> {
   final MapController _mapController = MapController();
   final TextEditingController _destinationController = TextEditingController();
 
-  // Controllers للمدخلات التي تتوافق مع البيانات:
+  // Controllers للنموذج الافتراضي
   final TextEditingController _departureTimeController = TextEditingController();
   final TextEditingController _passengersController = TextEditingController(text: "1");
   final TextEditingController _notesController = TextEditingController();
+
+  // Controller للنموذج البديل
+  final TextEditingController _weightController = TextEditingController();
 
   Location? _currentLocation;
   Location? _destinationLocation;
@@ -36,6 +38,12 @@ class _HomeScreenState extends State<HomeScreen> {
   List<LatLng> _routePoints = [];
   bool _isExpanded = false;
   bool _isLoading = false;
+
+  // متغير لتحديد نوع الحجز:
+  // false: النموذج الافتراضي
+  // true: النموذج البديل
+  bool _isAlternateBooking = false;
+  bool _urgent = false;
 
   @override
   void initState() {
@@ -73,7 +81,6 @@ class _HomeScreenState extends State<HomeScreen> {
           name: "موقعي الحالي",
           coordinates: LatLng(position.latitude, position.longitude),
         );
-        // نقل الخريطة إلى الموقع الحالي
         _mapController.move(_currentLocation!.coordinates, 15.0);
       });
     } catch (e) {
@@ -136,35 +143,79 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  /// دالة لإرسال بيانات الحجز إلى السيرفر
+  /// تفعيل النموذج البديل عند الضغط على أيقونة "UberX"
+  void _selectAlternateBooking() {
+    setState(() {
+      _isAlternateBooking = true;
+      _notesController.text = "pending";
+      _weightController.text = "7.00";
+      _urgent = false;
+    });
+  }
+
+  /// إعادة الحالة إلى النموذج الافتراضي عند الضغط على أيقونات "Uber Black" أو "Uber XL"
+  void _selectDefaultBooking() {
+    setState(() {
+      _isAlternateBooking = false;
+      _weightController.clear();
+      // يمكن إعادة تعيين قيم أخرى إن لزم الأمر
+    });
+  }
+
+  /// دالة لإرسال بيانات الحجز إلى السيرفر باستخدام نقطة النهاية المناسبة
   Future<void> _sendBooking() async {
     if (_currentLocation == null || _destinationLocation == null) {
       _showSnackBar("الموقع الحالي أو الوجهة غير محددة");
       return;
     }
 
-    // الحصول على قيم المدخلات من المستخدم
-    String departureTime = _departureTimeController.text.trim();
-    int passengers = int.tryParse(_passengersController.text.trim()) ?? 1;
-    String notes = _notesController.text.trim();
+    Map<String, dynamic> bookingData;
+    String endpoint;
 
-    // في حالة عدم تحديد وقت الرحلة يتم استخدام قيمة افتراضية
-    if (departureTime.isEmpty) {
-      departureTime = "2025-02-04T00:50:16Z";
+    if (_isAlternateBooking) {
+      // إعداد البيانات للنموذج البديل
+      final now = DateTime.now().toUtc().toIso8601String();
+      bookingData = {
+        "id": 1,
+        "created_at": now,
+        "updated_at": now,
+        "from_location":
+        "${_currentLocation!.coordinates.latitude}, ${_currentLocation!.coordinates.longitude}",
+        "to_location":
+        "${_destinationLocation!.coordinates.latitude}, ${_destinationLocation!.coordinates.longitude}",
+        "item_description": _notesController.text.trim(),
+        "weight": _weightController.text.trim(),
+        "urgent": _urgent,
+        "status": "pending",
+        "user": 1
+      };
+      // نقطة النهاية الخاصة بالنموذج البديل
+      endpoint = 'http://192.168.1.4:8000/cashe-item-deliveries/';
+    } else {
+      // إعداد البيانات للنموذج الافتراضي
+      String departureTime = _departureTimeController.text.trim();
+      int passengers = int.tryParse(_passengersController.text.trim()) ?? 1;
+      String notes = _notesController.text.trim();
+
+      if (departureTime.isEmpty) {
+        departureTime = "2025-02-04T00:50:16Z";
+      }
+
+      bookingData = {
+        "from_location":
+        "${_currentLocation!.coordinates.latitude}, ${_currentLocation!.coordinates.longitude}",
+        "to_location":
+        "${_destinationLocation!.coordinates.latitude}, ${_destinationLocation!.coordinates.longitude}",
+        "departure_time": departureTime,
+        "passengers": passengers,
+        "notes": notes,
+        "user": 1
+      };
+      // نقطة النهاية الخاصة بالنموذج الافتراضي
+      endpoint = 'http://192.168.1.4:8000/cashe-bookings/';
     }
 
-    final bookingData = {
-      "from_location":
-      "${_currentLocation!.coordinates.latitude}, ${_currentLocation!.coordinates.longitude}",
-      "to_location":
-      "${_destinationLocation!.coordinates.latitude}, ${_destinationLocation!.coordinates.longitude}",
-      "departure_time": departureTime,
-      "passengers": passengers,
-      "notes": notes,
-      "user": 1
-    };
-
-    final url = Uri.parse('http://192.168.0.159:8000/cashe-bookings/');
+    final url = Uri.parse(endpoint);
 
     try {
       final response = await http.post(
@@ -197,7 +248,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: buildDrawer(context),
+      drawer: AppDrawer( userData: {},),
       body: Stack(
         children: [
           FlutterMap(
@@ -265,14 +316,23 @@ class _HomeScreenState extends State<HomeScreen> {
             _onDestinationSelected,
             _searchLocations,
           ),
-          buildLocationButton(_toggleExpanded, _isExpanded,context),
-          // تمرير دالة _sendBooking عند الضغط على زر تأكيد الحجز
+          buildLocationButton(_toggleExpanded, _isExpanded, context),
           buildRideSheet(
             context,
             onConfirm: _sendBooking,
             departureController: _departureTimeController,
             passengersController: _passengersController,
             notesController: _notesController,
+            isAlternateBooking: _isAlternateBooking,
+            weightController: _weightController,
+            urgent: _urgent,
+            onUrgentChanged: (value) {
+              setState(() {
+                _urgent = value;
+              });
+            },
+            onSelectAlternate: _selectAlternateBooking,
+            onSelectDefault: _selectDefaultBooking,
           ),
           if (_isLoading)
             const Center(child: CircularProgressIndicator()),
@@ -300,4 +360,234 @@ class CachingNetworkTileProvider extends TileProvider {
         .replaceAll('{accessToken}', options.additionalOptions['accessToken']!);
     return CachedNetworkImageProvider(url);
   }
+}
+
+/// حقل إدخال نصي مع إمكانية تمرير Controller (إن وجد)
+Widget _buildInputField(String hintText, IconData icon, TextInputType keyboardType, {TextEditingController? controller}) {
+  return TextField(
+    controller: controller,
+    decoration: InputDecoration(
+      hintText: hintText,
+      prefixIcon: Icon(icon, color: Colors.blue),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.blue),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.blue),
+      ),
+    ),
+    keyboardType: keyboardType,
+  );
+}
+
+/// حقل تاريخ يتم اختياره من خلال DatePicker ويتم تحديث نصه بواسطة Controller
+Widget _buildDateField(BuildContext context, String hintText, IconData icon, {required TextEditingController controller}) {
+  return TextField(
+    controller: controller,
+    decoration: InputDecoration(
+      hintText: hintText,
+      prefixIcon: Icon(icon, color: Colors.grey),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.grey),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.blue),
+      ),
+    ),
+    readOnly: true,
+    onTap: () async {
+      DateTime? pickedDate = await showDatePicker(
+        context: context,
+        initialDate: DateTime.now(),
+        firstDate: DateTime(2000),
+        lastDate: DateTime(2100),
+      );
+      if (pickedDate != null) {
+        controller.text = pickedDate.toUtc().toIso8601String();
+      }
+    },
+  );
+}
+
+/// خيار أيقونة بسيط مع تسمية
+Widget _buildIconOption(IconData icon, String label, Color color, VoidCallback onTap) {
+  return GestureDetector(
+    onTap: onTap,
+    child: Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(5),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Icon(icon, size: 40, color: color),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          label,
+          style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: color
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// ورقة الطلب (Ride Sheet) التي تعرض حقول الإدخال وخيارات الحجز
+Widget buildRideSheet(
+    BuildContext context, {
+      required VoidCallback onConfirm,
+      required TextEditingController departureController,
+      required TextEditingController passengersController,
+      required TextEditingController notesController,
+      // باراميترات النموذج البديل:
+      bool isAlternateBooking = false,
+      TextEditingController? weightController,
+      bool urgent = false,
+      ValueChanged<bool>? onUrgentChanged,
+      // دوال لتبديل النموذج بين البديل والافتراضي:
+      VoidCallback? onSelectAlternate,
+      VoidCallback? onSelectDefault,
+    }) {
+  return DraggableScrollableSheet(
+    initialChildSize: 0.17,
+    minChildSize: 0.17,
+    maxChildSize: 0.6,
+    builder: (context, scrollController) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 20,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: ListView(
+          controller: scrollController,
+          padding: const EdgeInsets.all(20),
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(5),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            // صف خيارات الحجز
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // أيقونة النموذج البديل (UberX)
+                _buildIconOption(
+                  Icons.shopping_bag_rounded,
+                  'ارسال اغراض',
+                  Colors.blue,
+                      () {
+                    if (onSelectAlternate != null) {
+                      onSelectAlternate();
+                    }
+                  },
+                ),
+                // أيقونات إعادة التعيين للنموذج الافتراضي (Uber Black)
+                _buildIconOption(
+                  Icons.airport_shuttle_outlined,
+                  'ذهاب في رحلة',
+                  Colors.black,
+                      () {
+                    if (onSelectDefault != null) {
+                      onSelectDefault();
+                    }
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 30),
+            // بناء الحقول حسب نوع النموذج
+            if (isAlternateBooking) ...[
+              // حقل الوزن
+              _buildInputField(
+                "الوزن",
+                Icons.scale,
+                TextInputType.number,
+                controller: weightController,
+              ),
+              const SizedBox(height: 15),
+              // حقل وصف العنصر (item_description)
+              _buildInputField(
+                "وصف العنصر",
+                Icons.note,
+                TextInputType.text,
+                controller: notesController,
+              ),
+              const SizedBox(height: 15),
+              // مفتاح لتحديد ما إذا كانت الحالة عاجلة
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("عاجل"),
+                  Switch(
+                    value: urgent,
+                    onChanged: onUrgentChanged,
+                  ),
+                ],
+              ),
+            ] else ...[
+              // النموذج الافتراضي
+              _buildInputField(
+                "عدد الركاب",
+                Icons.people,
+                TextInputType.number,
+                controller: passengersController,
+              ),
+              const SizedBox(height: 15),
+              _buildDateField(
+                context,
+                "تاريخ الرحلة",
+                Icons.calendar_today,
+                controller: departureController,
+              ),
+              const SizedBox(height: 15),
+              _buildInputField(
+                "ملاحظات إضافية",
+                Icons.note,
+                TextInputType.multiline,
+                controller: notesController,
+              ),
+            ],
+            const SizedBox(height: 30),
+            ElevatedButton(
+              onPressed: onConfirm,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              child: const Text(
+                'تأكيد الحجز',
+                style: TextStyle(fontSize: 18, color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+      );
+    },
+  );
 }

@@ -1,30 +1,37 @@
 import 'package:flutter/material.dart';
 import 'package:untitled5/screens/home_screen.dart';
+import 'package:untitled5/services/AuthService.dart';
 
+import 'screens/LoginScreen.dart';
 import 'screens/complaint_screen.dart';
 import 'screens/trip_tracking_screen.dart';
 import 'screens/wallet_screen.dart';
-void main() {
-  runApp(const MyApp());
+
+void main() async {
+  // تأكد من تهيئة Widgets قبل استخدام عمليات غير متزامنة
+  WidgetsFlutterBinding.ensureInitialized();
+  // التحقق مما إذا كان المستخدم مسجلاً (بوجود بيانات المستخدم في SharedPreferences)
+  bool isLoggedIn = await AuthService.isLoggedIn();
+  runApp(MyApp(isLoggedIn: isLoggedIn));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final bool isLoggedIn;
+  const MyApp({Key? key, required this.isLoggedIn}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
+      title: 'My App',
       debugShowCheckedModeBanner: false,
+      // إذا كان المستخدم مسجلاً، نعرض الواجهة الرئيسية، وإلا نعرض شاشة تسجيل الدخول
       routes: {
-        '/': (ctx) => HomeScreen(),
+        '/': (ctx) =>isLoggedIn ? const HomeScreen() : const LoginScreen(),
+        '/Home': (ctx) => HomeScreen(),
         '/Complaint': (ctx) => ComplaintScreen(),
         '/TripTracking': (ctx) => TripTrackingScreen(),
-        '/Wallet': (ctx) => WalletScreen(),
+        '/Wallet': (ctx) => WalletPage(),
+        '/Login': (ctx) => LoginScreen(),
       },
     );
   }
