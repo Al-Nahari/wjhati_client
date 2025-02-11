@@ -26,7 +26,7 @@ class AppDrawer extends StatelessWidget {
               Navigator.pop(context);
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) =>  TripTrackingScreen()),
+                MaterialPageRoute(builder: (context) =>  BookingsPage()),
               );
             },
           ),
@@ -50,7 +50,7 @@ class AppDrawer extends StatelessWidget {
               Navigator.pop(context);
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) =>  ComplaintScreen()),
+                MaterialPageRoute(builder: (context) =>  ChatListScreen()),
               );
             },
           ),

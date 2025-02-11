@@ -28,8 +28,8 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (ctx) =>isLoggedIn ? const HomeScreen() : const LoginScreen(),
         '/Home': (ctx) => HomeScreen(),
-        '/Complaint': (ctx) => ComplaintScreen(),
-        '/TripTracking': (ctx) => TripTrackingScreen(),
+        '/Complaint': (ctx) => ChatListScreen(),
+        '/TripTracking': (ctx) => BookingsPage(),
         '/Wallet': (ctx) => WalletPage(),
         '/Login': (ctx) => LoginScreen(),
       },

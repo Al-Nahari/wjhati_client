@@ -45,7 +45,10 @@ dependencies:
   fluttertoast:
   shared_preferences:
   cached_network_image: ^3.4.0
-
+  path:
+  image_picker:
+  file_picker:
+  permission_handler:
 dev_dependencies:
   flutter_test:
     sdk: flutter

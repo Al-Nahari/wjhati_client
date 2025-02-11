@@ -34,7 +34,7 @@ class _WalletPageState extends State<WalletPage> {
 
       // الحصول على header يحتوي على رمز الوصول المحدث
       final headers = await AuthService.getAuthHeader();
-      final url = Uri.parse('http://192.168.1.4:8000/wallets/');
+      final url = Uri.parse('http://192.168.1.9:8000/wallets/');
       final response = await http.get(url, headers: headers);
 
       if (response.statusCode == 200) {
