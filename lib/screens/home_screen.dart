@@ -190,7 +190,7 @@ class _HomeScreenState extends State<HomeScreen> {
         "user": 1
       };
       // نقطة النهاية الخاصة بالنموذج البديل
-      endpoint = 'http://192.168.1.9:8000/cashe-item-deliveries/';
+      endpoint = 'http://192.168.1.2:8000/cashe-item-deliveries/';
     } else {
       // إعداد البيانات للنموذج الافتراضي
       String departureTime = _departureTimeController.text.trim();
@@ -212,7 +212,7 @@ class _HomeScreenState extends State<HomeScreen> {
         "user": 1
       };
       // نقطة النهاية الخاصة بالنموذج الافتراضي
-      endpoint = 'http://192.168.1.9:8000/cashe-bookings/';
+      endpoint = 'http://192.168.1.2:8000/cashe-bookings/';
     }
 
     final url = Uri.parse(endpoint);

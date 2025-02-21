@@ -38,7 +38,7 @@ class _BookingsPageState extends State<BookingsPage> {
     try {
       await AuthService.refreshToken();
       final headers = await AuthService.getAuthHeader();
-      final url = Uri.parse('http://192.168.1.9:8000/bookings/');
+      final url = Uri.parse('http://192.168.1.2:8000/bookings/');
       final response = await http.get(url, headers: headers);
 
       if (response.statusCode == 200) {
@@ -93,7 +93,7 @@ class _BookingsPageState extends State<BookingsPage> {
     try {
       await AuthService.refreshToken();
       final headers = await AuthService.getAuthHeader();
-      final url = Uri.parse('http://192.168.1.9:8000/bookings/$bookingId/');
+      final url = Uri.parse('http://192.168.1.2:8000/bookings/$bookingId/');
       final response = await http.patch(
         url,
         headers: {

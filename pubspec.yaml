@@ -49,6 +49,7 @@ dependencies:
   image_picker:
   file_picker:
   permission_handler:
+  mqtt_client:
 dev_dependencies:
   flutter_test:
     sdk: flutter

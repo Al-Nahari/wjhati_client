@@ -91,7 +91,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
     try {
       await AuthService.refreshToken();
       final headers = await AuthService.getAuthHeader();
-      final url = Uri.parse('http://192.168.1.9:8000/trips/${widget.tripId}/');
+      final url = Uri.parse('http://192.168.1.2:8000/trips/${widget.tripId}/');
       final response = await http.get(url, headers: headers);
 
       if (response.statusCode == 200) {
