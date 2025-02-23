@@ -15,7 +15,7 @@ class ChatListScreen extends StatefulWidget {
 }
 
 class _ChatListScreenState extends State<ChatListScreen> {
-  final String chatsApiUrl = 'http://192.168.1.2:8000/chats';
+  final String chatsApiUrl = 'http://192.168.1.4:8000/chats';
   List<dynamic> chats = [];
   final int currentUserId = 1;
   Map<int, int> unreadCounts = {};
@@ -29,7 +29,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   // دالة لجلب عدد الرسائل غير المقروءة لكل دردشة
   Future<int> getUnreadCountForChat(int chatId) async {
     try {
-      final response = await http.get(Uri.parse('http://192.168.1.2:8000/messages/'));
+      final response = await http.get(Uri.parse('http://192.168.1.4:8000/messages/'));
       if (response.statusCode == 200) {
         List<dynamic> allMessages = json.decode(utf8.decode(response.bodyBytes));
         int count = allMessages.where((m) =>
@@ -173,7 +173,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   @override
   void initState() {
     super.initState();
-    messagesApiUrl = 'http://192.168.1.2:8000/messages/';
+    messagesApiUrl = 'http://192.168.1.4:8000/messages/';
     fetchMessages();
   }
 
@@ -217,7 +217,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         try {
           final response = await http.patch(
             Uri.parse(
-                'http://192.168.1.2:8000/messages/${message['id']}/'),
+                'http://192.168.1.4:8000/messages/${message['id']}/'),
             headers: {
               'Content-Type': 'application/json; charset=UTF-8'
             },
