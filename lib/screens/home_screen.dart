@@ -16,6 +16,7 @@ import '../services/ip.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -114,6 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _getRouteDirections() async {
     if (_currentLocation == null || _destinationLocation == null) return;
+
     setState(() => _isLoading = true);
     try {
       final route = await _locationService.getRouteDirections(
@@ -142,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
-  /// نافذة الحجز مع تفصيل الحجز حسب نوعه (افتراضي أو بديل)
+  /// الدالة التي تعرض نافذة الحجز في منتصف الشاشة بحسب نوع الحجز
   void _showBookingDialog(bool alternateBooking) {
     setState(() {
       _isAlternateBooking = alternateBooking;
@@ -162,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   alternateBooking ? 'تفاصيل حجز إرسال أغراض' : 'تفاصيل حجز رحلة',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF4e54c8),
+                    color: Colors.deepPurple,
                   ),
                 ),
               ),
@@ -199,7 +201,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 _urgent = value;
                               });
                             },
-                            activeColor: const Color(0xFF4e54c8),
+                            activeColor: Colors.deepPurple,
                           ),
                         ],
                       ),
@@ -244,7 +246,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Navigator.of(context).pop();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4e54c8),
+                    backgroundColor: Colors.deepPurple,
                     padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
@@ -278,10 +280,8 @@ class _HomeScreenState extends State<HomeScreen> {
         "id": 1,
         "created_at": now,
         "updated_at": now,
-        "from_location":
-        "${_currentLocation!.coordinates.latitude}, ${_currentLocation!.coordinates.longitude}",
-        "to_location":
-        "${_destinationLocation!.coordinates.latitude}, ${_destinationLocation!.coordinates.longitude}",
+        "from_location": "${_currentLocation!.coordinates.latitude}, ${_currentLocation!.coordinates.longitude}",
+        "to_location": "${_destinationLocation!.coordinates.latitude}, ${_destinationLocation!.coordinates.longitude}",
         "item_description": _notesController.text.trim(),
         "weight": _weightController.text.trim(),
         "urgent": _urgent,
@@ -299,10 +299,8 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       bookingData = {
-        "from_location":
-        "${_currentLocation!.coordinates.latitude}, ${_currentLocation!.coordinates.longitude}",
-        "to_location":
-        "${_destinationLocation!.coordinates.latitude}, ${_destinationLocation!.coordinates.longitude}",
+        "from_location": "${_currentLocation!.coordinates.latitude}, ${_currentLocation!.coordinates.longitude}",
+        "to_location": "${_destinationLocation!.coordinates.latitude}, ${_destinationLocation!.coordinates.longitude}",
         "departure_time": departureTime,
         "passengers": passengers,
         "notes": notes,
@@ -312,12 +310,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final url = Uri.parse(endpoint);
+
     try {
       final response = await http.post(
         url,
         headers: {"Content-Type": "application/json"},
         body: json.encode(bookingData),
       );
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         _showSnackBar("تم إرسال الحجز بنجاح");
       } else {
@@ -336,17 +336,16 @@ class _HomeScreenState extends State<HomeScreen> {
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
-          // خريطة تغطي كامل الخلفية
+          // عرض الخريطة
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
               center: _currentLocation?.coordinates ?? LatLng(24.7136, 46.6753),
               zoom: 13.0,
-              // تمكين التفاعل الكامل (تكبير، تصغير، تدوير، سحب)
+              // تمكين جميع حركات التفاعل (بما في ذلك الدوران)
               interactiveFlags: InteractiveFlag.all,
-              onPositionChanged: (MapPosition position, bool hasGesture) {
-                // لا إعادة ضبط المركز تلقائيًا لمنع تعارض حركة المستخدم
-              },
+              // إزالة إعادة تحريك الخريطة تلقائيًا عند حركة المستخدم
+              onPositionChanged: (MapPosition position, bool hasGesture) {},
             ),
             children: [
               TileLayer(
@@ -359,7 +358,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   'id': 'mapbox/streets-v11',
                 },
               ),
-              // مؤشر الموقع الحالي
+              // المؤشر للموقع الحالي
               if (_currentLocation != null)
                 MarkerLayer(
                   markers: [
@@ -379,15 +378,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         padding: const EdgeInsets.all(6),
                         child: Icon(
-                          Icons.location_pin,
-                          color: const Color(0xFF4e54c8),
+                          Icons.account_circle,
+                          color: Colors.deepPurple,
                           size: 30,
                         ),
                       ),
                     ),
                   ],
                 ),
-              // مؤشر الوجهة
+              // المؤشر للوجهة
               if (_destinationLocation != null)
                 MarkerLayer(
                   markers: [
@@ -408,7 +407,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: const EdgeInsets.all(6),
                         child: Icon(
                           Icons.location_on,
-                          color: Colors.red,
+                          color: Colors.deepPurple,
                           size: 30,
                         ),
                       ),
@@ -421,7 +420,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   polylines: [
                     Polyline(
                       points: _routePoints,
-                      color: const Color(0xFF4e54c8).withOpacity(0.8),
+                      color: Colors.deepPurple.withOpacity(0.8),
                       strokeWidth: 5.0,
                       borderColor: Colors.white,
                       borderStrokeWidth: 2.0,
@@ -430,168 +429,126 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
             ],
           ),
-          // SafeArea لاحتواء المحتوى فوق الخريطة
           SafeArea(
             child: Column(
               children: [
-                // حقل البحث مصمم بنمط Uber مع تصميم عصري (لون تدرجي، ظلال، وزوايا دائرية)
-                buildUberSearchBar(context, _destinationController),
+                // حقل البحث
+                Container(
+                  margin:EdgeInsets.symmetric(vertical: 50),
+                  padding: const EdgeInsets.only(top: 20, right: 16),
+                  child: Container(
+
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: buildTopNavigation(
+                        context,
+                        _destinationController,
+                        _searchSuggestions,
+                        _onDestinationSelected,
+                        _searchLocations,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
-          // مؤشر التحميل
           if (_isLoading)
             const Center(child: CircularProgressIndicator()),
-          // عناصر الأزرار أسفل الشاشة
+          // أزرار الحجز في أسفل الشاشة
           Positioned(
-            bottom: 30,
-            left: 16,
-            right: 16,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                // زر إرسال أغراض
-                ElevatedButton.icon(
-                  onPressed: () {
-                    _showBookingDialog(true);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4e54c8),
-                    elevation: 4,
-                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
+            bottom: 20,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      _showBookingDialog(true);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.deepPurple,
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      elevation: 3,
+                    ),
+                    icon: const FaIcon(FontAwesomeIcons.box, color: Colors.white, size: 18),
+                    label: const Text(
+                      "رسائل",
+                      style: TextStyle(color: Colors.white, fontSize: 16),
                     ),
                   ),
-                  icon: const FaIcon(
-                    FontAwesomeIcons.box,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                  label: const Text(
-                    "رسائل",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(width: 20),
+                  // زر المنزل في وسط أسفل الشاشة
+                  FloatingActionButton(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const HomeScreen()),
+                      );
+                    },
+                    backgroundColor: Colors.white,
+                    shape: const CircleBorder(),
+                    elevation: 6,
+                    child: const Icon(
+                      Icons.home,
+                      color: Colors.deepPurple,
+                      size: 30,
                     ),
                   ),
-                ),
-                // زر العودة إلى الرئيسية
-                FloatingActionButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const HomeScreen()),
-                    );
-                  },
-                  backgroundColor: Colors.white,
-                  elevation: 6,
-                  child: const Icon(
-                    Icons.home,
-                    color: Color(0xFF4e54c8),
-                    size: 30,
-                  ),
-                ),
-                // زر طلب رحلة
-                ElevatedButton.icon(
-                  onPressed: () {
-                    _showBookingDialog(false);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4e54c8),
-                    elevation: 4,
-                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25),
+                  const SizedBox(width: 20),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      _showBookingDialog(false);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.deepPurple,
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      elevation: 3,
+                    ),
+                    icon: const FaIcon(FontAwesomeIcons.taxi, color: Colors.white, size: 18),
+                    label: const Text(
+                      "رحلة",
+                      style: TextStyle(color: Colors.white, fontSize: 16),
                     ),
                   ),
-                  icon: const FaIcon(
-                    FontAwesomeIcons.taxi,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                  label: const Text(
-                    "رحلة",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          )
+          ),
         ],
       ),
     );
   }
 }
 
-/// دالة تصميم حقل البحث بنمط Uber مع تصميم عصري
-Widget buildUberSearchBar(BuildContext context, TextEditingController controller) {
-  final screenHeight = MediaQuery.of(context).size.height;
-  return Container(
-    // ارتفاع يمثل 10% من الشاشة
-    height: screenHeight * 0.1,
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-    child: Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(50),
-        // تأثير ظلال حديثة مشابهة لتطبيق Uber
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.12),
-            offset: const Offset(0, 4),
-            blurRadius: 8,
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16),
-            child: Icon(
-              Icons.search,
-              color: Colors.grey,
-              size: 28,
-            ),
-          ),
-          // استخدام Widget مرن ليملأ المساحة المتبقية مثل Uber
-          Expanded(
-            child: TextField(
-              controller: controller,
-              style: const TextStyle(
-                fontSize: 18,
-                color: Colors.black87,
-              ),
-              decoration: const InputDecoration(
-                hintText: "أين تريد الذهاب؟",
-                hintStyle: TextStyle(color: Colors.grey),
-                border: InputBorder.none,
-              ),
-              onChanged: (value) {
-                // يمكنك استدعاء دالة البحث هنا
-              },
-            ),
-          ),
-          // زر مسح النص (اختياري)
-          if(controller.text.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.clear, color: Colors.grey, size: 24),
-              onPressed: () {
-                controller.clear();
-              },
-            ),
-        ],
-      ),
-    ),
-  );
+class CachingNetworkTileProvider extends TileProvider {
+  @override
+  ImageProvider getImage(TileCoordinates coordinates, TileLayer options) {
+    if (options.urlTemplate == null ||
+        options.additionalOptions['id'] == null ||
+        options.additionalOptions['accessToken'] == null) {
+      throw Exception("Missing required tile layer options.");
+    }
+
+    final url = options.urlTemplate!
+        .replaceAll('{x}', coordinates.x.toString())
+        .replaceAll('{y}', coordinates.y.toString())
+        .replaceAll('{z}', coordinates.z.toString())
+        .replaceAll('{id}', options.additionalOptions['id']!)
+        .replaceAll('{accessToken}', options.additionalOptions['accessToken']!);
+    return CachedNetworkImageProvider(url);
+  }
 }
 
-/// Widget لحقل الإدخال مع تأثير الظلال وحواف ناعمة
+/// حقل إدخال نص مع تأثير التمويه وخلفية شفافة
 Widget _buildInputField(String hintText, IconData icon, TextInputType keyboardType,
     {TextEditingController? controller}) {
   return Container(
@@ -605,7 +562,7 @@ Widget _buildInputField(String hintText, IconData icon, TextInputType keyboardTy
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: const TextStyle(color: Colors.grey),
-        prefixIcon: Icon(icon, color: const Color(0xFF4e54c8)),
+        prefixIcon: Icon(icon, color: Colors.deepPurple),
         filled: true,
         fillColor: Colors.transparent,
         contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
@@ -619,7 +576,7 @@ Widget _buildInputField(String hintText, IconData icon, TextInputType keyboardTy
   );
 }
 
-/// Widget لحقل اختيار التاريخ مع تأثير التمويه وخيارات تصميم متطورة
+/// حقل اختيار تاريخ مع تأثير التمويه
 Widget _buildDateField(BuildContext context, String hintText, IconData icon,
     {required TextEditingController controller}) {
   return Container(
@@ -633,7 +590,7 @@ Widget _buildDateField(BuildContext context, String hintText, IconData icon,
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: const TextStyle(color: Colors.grey),
-        prefixIcon: Icon(icon, color: const Color(0xFF4e54c8)),
+        prefixIcon: Icon(icon, color: Colors.deepPurple),
         filled: true,
         fillColor: Colors.transparent,
         contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
@@ -653,13 +610,13 @@ Widget _buildDateField(BuildContext context, String hintText, IconData icon,
             return Theme(
               data: Theme.of(context).copyWith(
                 colorScheme: const ColorScheme.light(
-                  primary: Color(0xFF4e54c8),
+                  primary: Colors.deepPurple,
                   onPrimary: Colors.white,
                   onSurface: Colors.black,
                 ),
                 textButtonTheme: TextButtonThemeData(
                   style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFF4e54c8),
+                    foregroundColor: Colors.deepPurple,
                   ),
                 ),
               ),
@@ -673,24 +630,4 @@ Widget _buildDateField(BuildContext context, String hintText, IconData icon,
       },
     ),
   );
-}
-
-/// Provider خاص لتخزين الصور من الإنترنت مع caching
-class CachingNetworkTileProvider extends TileProvider {
-  @override
-  ImageProvider getImage(TileCoordinates coordinates, TileLayer options) {
-    if (options.urlTemplate == null ||
-        options.additionalOptions['id'] == null ||
-        options.additionalOptions['accessToken'] == null) {
-      throw Exception("Missing required tile layer options.");
-    }
-
-    final url = options.urlTemplate!
-        .replaceAll('{x}', coordinates.x.toString())
-        .replaceAll('{y}', coordinates.y.toString())
-        .replaceAll('{z}', coordinates.z.toString())
-        .replaceAll('{id}', options.additionalOptions['id']!)
-        .replaceAll('{accessToken}', options.additionalOptions['accessToken']!);
-    return CachedNetworkImageProvider(url);
-  }
 }
