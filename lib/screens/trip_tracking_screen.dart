@@ -11,7 +11,7 @@ import 'package:mqtt_client/mqtt_server_client.dart';
 
 // تأكد من استيراد AuthService من المسار المناسب في مشروعك
 import '../services/AuthService.dart';
-
+import '../services/ip.dart';
 /// صفحة عرض قائمة الحجوزات مع إمكانية إلغاء الحجز والانتقال لتفاصيل الرحلة
 class BookingsPage extends StatefulWidget {
   const BookingsPage({Key? key}) : super(key: key);
@@ -41,7 +41,7 @@ class _BookingsPageState extends State<BookingsPage> {
     try {
       await AuthService.refreshToken();
       final headers = await AuthService.getAuthHeader();
-      final url = Uri.parse('http://192.168.1.4:8000/bookings/');
+      final url = Uri.parse('${ips.apiUrl}bookings/');
       final response = await http.get(url, headers: headers);
 
       if (response.statusCode == 200) {
@@ -96,7 +96,7 @@ class _BookingsPageState extends State<BookingsPage> {
     try {
       await AuthService.refreshToken();
       final headers = await AuthService.getAuthHeader();
-      final url = Uri.parse('http://192.168.1.4:8000/bookings/$bookingId/');
+      final url = Uri.parse('${ips.apiUrl}bookings/$bookingId/');
       final response = await http.patch(
         url,
         headers: {

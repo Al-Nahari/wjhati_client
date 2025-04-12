@@ -11,6 +11,7 @@ import '../widgets/location_button.dart';
 import '../widgets/top_navigation.dart';
 import '../models/location.dart';
 import '../services/location_service.dart';
+import '../services/ip.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -190,7 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
         "user": 1
       };
       // نقطة النهاية الخاصة بالنموذج البديل
-      endpoint = 'http://192.168.1.4:8000/cashe-item-deliveries/';
+      endpoint = '${ips.apiUrl}cashe-item-deliveries/';
     } else {
       // إعداد البيانات للنموذج الافتراضي
       String departureTime = _departureTimeController.text.trim();
@@ -212,7 +213,7 @@ class _HomeScreenState extends State<HomeScreen> {
         "user": 1
       };
       // نقطة النهاية الخاصة بالنموذج الافتراضي
-      endpoint = 'http://192.168.1.4:8000/cashe-bookings/';
+      endpoint = '${ips.apiUrl}cashe-bookings/';
     }
 
     final url = Uri.parse(endpoint);

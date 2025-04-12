@@ -1,14 +1,14 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-
+import '../services/ip.dart';
 class AuthService {
   // نقطة النهاية الخاصة بتسجيل الدخول
-  static const String _loginUrl = 'http://192.168.1.4:8000/api/token/';
+  static const String _loginUrl = '${ips.apiUrl}api/token/';
   // نقطة النهاية الخاصة بالتسجيل
-  static const String _registerUrl = 'http://192.168.1.4:8000/api/register/';
+  static const String _registerUrl = '${ips.apiUrl}api/register/';
   // نقطة النهاية الخاصة بتحديث رمز الوصول
-  static const String _refreshUrl = 'http://192.168.1.4:8000/api/token/refresh/';
+  static const String _refreshUrl = '${ips.apiUrl}api/token/refresh/';
 
   /// دالة تسجيل الدخول:
   /// ترسل بيانات اسم المستخدم وكلمة المرور إلى الـ API، وعند النجاح تحفظ الرموز في SharedPreferences.

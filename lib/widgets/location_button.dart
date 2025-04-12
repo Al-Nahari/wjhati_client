@@ -12,7 +12,7 @@ Widget buildLocationButton(Function toggleExpanded, bool isExpanded,BuildContext
             backgroundColor: Colors.red,
             onPressed: () {
               Navigator.pushNamed(context, '/TripTracking');
-              },
+            },
             child: const Icon(Icons.location_on, color: Colors.white),
           ),
         const SizedBox(height: 10),

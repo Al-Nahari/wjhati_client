@@ -8,7 +8,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
 
 import '../services/AuthService.dart';
-import '../services/location_service.dart';
+import '../services/ip.dart';
 
 /// كلاس بيانات المسار المُسترجَع من Mapbox
 class RouteInfo {
@@ -91,7 +91,7 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
     try {
       await AuthService.refreshToken();
       final headers = await AuthService.getAuthHeader();
-      final url = Uri.parse('http://192.168.1.4:8000/trips/${widget.tripId}/');
+      final url = Uri.parse('${ips.apiUrl}trips/${widget.tripId}/');
       final response = await http.get(url, headers: headers);
 
       if (response.statusCode == 200) {

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../services/AuthService.dart';
-
+import '../services/ip.dart';
 class WalletPage extends StatefulWidget {
   const WalletPage({Key? key}) : super(key: key);
 
@@ -34,7 +34,7 @@ class _WalletPageState extends State<WalletPage> {
 
       // الحصول على header يحتوي على رمز الوصول المحدث
       final headers = await AuthService.getAuthHeader();
-      final url = Uri.parse('http://192.168.1.4:8000/wallets/');
+      final url = Uri.parse('${ips.apiUrl}wallets/');
       final response = await http.get(url, headers: headers);
 
       if (response.statusCode == 200) {
