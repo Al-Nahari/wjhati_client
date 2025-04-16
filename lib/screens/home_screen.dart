@@ -7,7 +7,9 @@ import 'package:latlong2/latlong.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:untitled5/screens/wallet_screen.dart';
 
+import '../main.dart';
 import '../widgets/drawer.dart';
 import '../widgets/top_navigation.dart';
 import '../models/location.dart';
@@ -164,7 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   alternateBooking ? 'تفاصيل حجز إرسال أغراض' : 'تفاصيل حجز رحلة',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.deepPurple,
+                    color: MyApp.primry,
                   ),
                 ),
               ),
@@ -201,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 _urgent = value;
                               });
                             },
-                            activeColor: Colors.deepPurple,
+                            activeColor: MyApp.primry,
                           ),
                         ],
                       ),
@@ -246,7 +248,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     Navigator.of(context).pop();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.deepPurple,
+                    backgroundColor: MyApp.primry,
                     padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
@@ -330,7 +332,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
     return Scaffold(
       drawer: AppDrawer(userData: {}),
       extendBodyBehindAppBar: true,
@@ -342,9 +343,7 @@ class _HomeScreenState extends State<HomeScreen> {
             options: MapOptions(
               center: _currentLocation?.coordinates ?? LatLng(24.7136, 46.6753),
               zoom: 13.0,
-              // تمكين جميع حركات التفاعل (بما في ذلك الدوران)
               interactiveFlags: InteractiveFlag.all,
-              // إزالة إعادة تحريك الخريطة تلقائيًا عند حركة المستخدم
               onPositionChanged: (MapPosition position, bool hasGesture) {},
             ),
             children: [
@@ -379,7 +378,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: const EdgeInsets.all(6),
                         child: Icon(
                           Icons.account_circle,
-                          color: Colors.deepPurple,
+                          color: MyApp.primry,
                           size: 30,
                         ),
                       ),
@@ -407,7 +406,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         padding: const EdgeInsets.all(6),
                         child: Icon(
                           Icons.location_on,
-                          color: Colors.deepPurple,
+                          color: MyApp.primry,
                           size: 30,
                         ),
                       ),
@@ -420,7 +419,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   polylines: [
                     Polyline(
                       points: _routePoints,
-                      color: Colors.deepPurple.withOpacity(0.8),
+                      color: MyApp.primry.withOpacity(0.8),
                       strokeWidth: 5.0,
                       borderColor: Colors.white,
                       borderStrokeWidth: 2.0,
@@ -429,32 +428,21 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
             ],
           ),
-          SafeArea(
-            child: Column(
-              children: [
-                // حقل البحث
-                Container(
-                  margin:EdgeInsets.symmetric(vertical: 50),
-                  padding: const EdgeInsets.only(top: 20, right: 16),
-                  child: Container(
-
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: buildTopNavigation(
-                        context,
-                        _destinationController,
-                        _searchSuggestions,
-                        _onDestinationSelected,
-                        _searchLocations,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+          // وضع شريط البحث في أعلى الشاشة
+          Positioned(
+            top: 60,
+            left: 30,
+            right: 30,
+            child: buildTopNavigation(
+              context,
+              _destinationController,
+              _searchSuggestions,
+              _onDestinationSelected,
+              _searchLocations,
             ),
           ),
-          if (_isLoading)
-            const Center(child: CircularProgressIndicator()),
+
+          if (_isLoading) const Center(child: CircularProgressIndicator()),
           // أزرار الحجز في أسفل الشاشة
           Positioned(
             bottom: 20,
@@ -469,7 +457,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       _showBookingDialog(true);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
+                      backgroundColor: MyApp.primry,
                       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
@@ -488,7 +476,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const HomeScreen()),
+                        MaterialPageRoute(builder: (context) => WalletPage()),
                       );
                     },
                     backgroundColor: Colors.white,
@@ -496,7 +484,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     elevation: 6,
                     child: const Icon(
                       Icons.home,
-                      color: Colors.deepPurple,
+                      color: MyApp.primry,
                       size: 30,
                     ),
                   ),
@@ -506,7 +494,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       _showBookingDialog(false);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepPurple,
+                      backgroundColor: MyApp.primry,
                       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
@@ -529,6 +517,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+// موفر تبليط الخريطة مع كاش الصور
 class CachingNetworkTileProvider extends TileProvider {
   @override
   ImageProvider getImage(TileCoordinates coordinates, TileLayer options) {
@@ -562,7 +551,7 @@ Widget _buildInputField(String hintText, IconData icon, TextInputType keyboardTy
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: const TextStyle(color: Colors.grey),
-        prefixIcon: Icon(icon, color: Colors.deepPurple),
+        prefixIcon: Icon(icon, color: MyApp.primry),
         filled: true,
         fillColor: Colors.transparent,
         contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
@@ -590,7 +579,7 @@ Widget _buildDateField(BuildContext context, String hintText, IconData icon,
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: const TextStyle(color: Colors.grey),
-        prefixIcon: Icon(icon, color: Colors.deepPurple),
+        prefixIcon: Icon(icon, color: MyApp.primry),
         filled: true,
         fillColor: Colors.transparent,
         contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
@@ -610,13 +599,13 @@ Widget _buildDateField(BuildContext context, String hintText, IconData icon,
             return Theme(
               data: Theme.of(context).copyWith(
                 colorScheme: const ColorScheme.light(
-                  primary: Colors.deepPurple,
+                  primary: MyApp.primry,
                   onPrimary: Colors.white,
                   onSurface: Colors.black,
                 ),
                 textButtonTheme: TextButtonThemeData(
                   style: TextButton.styleFrom(
-                    foregroundColor: Colors.deepPurple,
+                    foregroundColor: MyApp.primry,
                   ),
                 ),
               ),

@@ -1,8 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
+import '../main.dart';
 import '../services/AuthService.dart';
 import '../services/ip.dart';
+import 'home_main.dart';
+import 'home_screen.dart';
+
 class WalletPage extends StatefulWidget {
   const WalletPage({Key? key}) : super(key: key);
 
@@ -15,13 +20,19 @@ class _WalletPageState extends State<WalletPage> {
   Map<String, dynamic>? _walletData;
   String _errorMessage = '';
 
+  final List<_Service> services = [
+    _Service('سجل الرحلات', 'تتبع الرحلات التي طلبتها وحدد مكان السائق', FontAwesomeIcons.mapLocation),
+    _Service(' أموالك', 'اخر العمليات المالية التي اجريتها ', FontAwesomeIcons.wallet),
+    _Service('بيانات التسجيل', ' بيانات تسجيل الدخول', FontAwesomeIcons.idCard),
+    _Service('شكوى / تقييم', 'تواصل معا الدعم لتحسين الخدمة...', FontAwesomeIcons.paperPlane),
+  ];
+
   @override
   void initState() {
     super.initState();
     _fetchWalletData();
   }
 
-  /// دالة لاسترجاع بيانات المحفظة من الخادم مع تحديث رمز الوصول أولاً
   Future<void> _fetchWalletData() async {
     setState(() {
       _isLoading = true;
@@ -29,235 +40,268 @@ class _WalletPageState extends State<WalletPage> {
     });
 
     try {
-      // تحديث رمز الوصول باستخدام refresh token قبل جلب البيانات
       await AuthService.refreshToken();
-
-      // الحصول على header يحتوي على رمز الوصول المحدث
       final headers = await AuthService.getAuthHeader();
-      final url = Uri.parse('${ips.apiUrl}wallets/');
-      final response = await http.get(url, headers: headers);
+      final response = await http.get(Uri.parse('${ips.apiUrl}wallets/'), headers: headers);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
-        if (data is List && data.isNotEmpty) {
-          setState(() {
-            _walletData = data[0];
-            _isLoading = false;
-          });
-        } else if (data is Map<String, dynamic>) {
-          setState(() {
-            _walletData = data;
-            _isLoading = false;
-          });
-        } else {
-          setState(() {
-            _errorMessage = 'تنسيق البيانات من الخادم غير صحيح.';
-            _isLoading = false;
-          });
-        }
-      } else if (response.statusCode == 403) {
         setState(() {
-          _errorMessage =
-          'خطأ 403: ليس لديك صلاحية للوصول إلى هذه البيانات. تأكد من صحة بيانات التوثيق.';
+          _walletData = data is List && data.isNotEmpty ? data[0] : (data is Map<String, dynamic> ? data : null);
           _isLoading = false;
+          if (_walletData == null) _errorMessage = 'لا توجد بيانات صالحة.';
         });
       } else {
         setState(() {
-          _errorMessage = 'حدث خطأ: ${response.statusCode}';
+          _errorMessage = 'خطأ: ${response.statusCode}';
           _isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'حدث خطأ أثناء الاتصال بالخادم: $e';
+        _errorMessage = 'حدث خطأ أثناء الاتصال: $e';
         _isLoading = false;
       });
     }
   }
 
-  /// دالة لبناء واجهة عرض بيانات المحفظة بشكل بطاقة ائتمانية أنيقة
   Widget _buildWalletDetails() {
     if (_walletData == null) {
       return const Center(child: Text('لا توجد بيانات للمحفظة.'));
     }
 
-    return Center(
-      child: Container(
-        margin: const EdgeInsets.all(16.0),
-        width: double.infinity,
-        height: 260,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          gradient: const LinearGradient(
-            colors: [
-              Color(0xFF283E51),
-              Color(0xFF4B79A1),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black45,
-              offset: Offset(0, 6),
-              blurRadius: 10,
-            )
-          ],
+    return Container(
+      margin: const EdgeInsets.all(16),
+      width: double.infinity,
+      height: 220,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF283E51), Color(0xFF4B79A1)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: Stack(
-          children: [
-            // أيقونة زخرفية في الزاوية العلوية اليمنى
-            Positioned(
-              top: 20,
-              right: 20,
-              child: Icon(
-                Icons.credit_card,
-                size: 50,
-                color: Colors.white.withOpacity(0.3),
-              ),
-            ),
-            // شكل دائري زخرفي في الخلفية
-            Positioned(
-              bottom: -20,
-              left: -20,
-              child: Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.1),
-                  shape: BoxShape.circle,
+        boxShadow: const [BoxShadow(color: Colors.black45, offset: Offset(0, 6), blurRadius: 10)],
+      ),
+      child: Stack(
+        children: [
+          Positioned(top: 20, right: 20, child: Icon(Icons.credit_card, size: 50, color: Colors.white30)),
+          Positioned(bottom: -20, left: -20, child: _buildCircle()),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('رقم المحفظة: ${_walletData!['id']}', style: _textStyle(16, true)),
+                const Spacer(),
+                Row(
+                  children: [
+                    _buildDetailColumn('الرصيد', '${_walletData!['balance']} ${_walletData!['currency']}'),
+                    _buildDetailColumn('الحالة', _walletData!['is_locked'] ? 'مقفلة' : 'مفتوحة', isEnd: true),
+                  ],
                 ),
-              ),
+                const SizedBox(height: 12),
+                Text('${_walletData!['created_at']}', style: TextStyle(color: Colors.white70, fontSize: 12)),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // رقم المحفظة
-                  Flexible(
-                    child: Text(
-                      'رقم المحفظة: ${_walletData!['id']}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
-                    ),
-                  ),
-                  const Spacer(),
-                  // بيانات الرصيد والحالة
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'الرصيد',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 14,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${_walletData!['balance']} ${_walletData!['currency']}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 28,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            const Text(
-                              'الحالة',
-                              style: TextStyle(
-                                color: Colors.white70,
-                                fontSize: 14,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              _walletData!['is_locked'] ? 'مقفلة' : 'مفتوحة',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  // عرض تاريخ الإنشاء (يمكنك إضافة تاريخ التحديث إذا رغبت)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '${_walletData!['created_at']}',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.8),
-                            fontSize: 12,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
-                        ),
-                      ),
-                    ],
-                  )
-                ],
-              ),
-            ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailColumn(String label, String value, {bool isEnd = false}) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: isEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+          const SizedBox(height: 4),
+          Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  TextStyle _textStyle(double size, bool bold) {
+    return TextStyle(
+      color: Colors.white,
+      fontSize: size,
+      fontWeight: bold ? FontWeight.bold : FontWeight.normal,
+    );
+  }
+
+  Widget _buildCircle() => Container(
+    width: 100,
+    height: 100,
+    decoration: BoxDecoration(color: Colors.white10, shape: BoxShape.circle),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage.isNotEmpty
+          ? Center(child: Text(_errorMessage, style: const TextStyle(color: Colors.red)))
+          : Column(
+        children: [
+          SafeArea(child: _buildWalletDetails()),
+          _buildRefreshBar(),
+          _buildServiceGrid(),
+          _buildBottomNavigation(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRefreshBar() {
+    return Container(
+      width: double.infinity,
+      color: Colors.black12,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text('تحديث البيانات', style: TextStyle(color: Colors.black)),
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchWalletData),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildServiceGrid() {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: GridView.builder(
+          itemCount: services.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 1.2,
+          ),
+          itemBuilder: (_, i) => _ServiceCard(service: services[i]),
         ),
       ),
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('تفاصيل المحفظة'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _fetchWalletData,
+  Widget _buildBottomNavigation() {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildActionButton("رسائل", FontAwesomeIcons.box, () {}),
+          const SizedBox(width: 20),
+          FloatingActionButton(
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HomeScreen())),
+            backgroundColor: Colors.white,
+            shape: const CircleBorder(),
+            child: const Icon(FontAwesomeIcons.mapLocationDot, color: MyApp.primry, size: 30),
           ),
+          const SizedBox(width: 20),
+          _buildActionButton("رحلة", FontAwesomeIcons.taxi, () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) =>  HomePage()));
+          }),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage.isNotEmpty
-          ? Center(
-        child: Text(
-          _errorMessage,
-          style: const TextStyle(fontSize: 16, color: Colors.red),
-          textAlign: TextAlign.center,
+    );
+  }
+
+  Widget _buildActionButton(String text, IconData icon, VoidCallback onPressed) {
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: MyApp.primry,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 3,
+      ),
+      icon: FaIcon(icon, color: Colors.white, size: 18),
+      label: Text(text, style: const TextStyle(color: Colors.white, fontSize: 16)),
+    );
+  }
+}
+
+class _Service {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final bool highlighted;
+  _Service(this.title, this.subtitle, this.icon, {this.highlighted = false});
+}
+
+class _ServiceCard extends StatefulWidget {
+  final _Service service;
+  const _ServiceCard({required this.service});
+
+  @override
+  State<_ServiceCard> createState() => __ServiceCardState();
+}
+
+class __ServiceCardState extends State<_ServiceCard> with SingleTickerProviderStateMixin {
+  late final AnimationController _anim;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _anim = AnimationController(vsync: this, duration: const Duration(milliseconds: 100));
+    _scale = Tween<double>(begin: 1.0, end: 0.95).animate(_anim);
+  }
+
+  @override
+  void dispose() {
+    _anim.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.service;
+    return GestureDetector(
+      onTapDown: (_) => _anim.forward(),
+      onTapUp: (_) => _anim.reverse(),
+      onTapCancel: () => _anim.reverse(),
+      onTap: () {
+        final title = widget.service.title;
+
+        if (title.contains("أموالك")) {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const WalletPage()));
+        } else if (title.contains("سجل الرحلات")) {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+        } else if (title.contains("بيانات التسجيل")) {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+        } else if (title.contains("شكوى") || title.contains("تقييم")) {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+        }
+      },
+
+
+      child: ScaleTransition(
+        scale: _scale,
+        child: Container(
+          decoration: BoxDecoration(
+            color: s.highlighted ? MyApp.accent : MyApp.cardColor,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [BoxShadow(color: Colors.black38, blurRadius: 8, offset: Offset(0, 4))],
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(s.icon, size: 28, color: s.highlighted ? MyApp.primry : Colors.white),
+              const Spacer(),
+              Text(s.title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: s.highlighted ? MyApp.primry : Colors.white)),
+              const SizedBox(height: 4),
+              Text(s.subtitle, style: const TextStyle(fontSize: 12, color: MyApp.textLight)),
+            ],
+          ),
         ),
-      )
-          : _buildWalletDetails(),
+      ),
     );
   }
 }
