@@ -1,211 +1,121 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
+import 'package:http/http.dart' as http;
+import '../services/AuthService.dart';
+import '../services/ip.dart';
 import '../main.dart';
 
+class WalletTransfersPage extends StatefulWidget {
+  final int walletId; // المحفظة المرتبطة بالمستخدم
 
-class HomePage extends StatelessWidget {
-  // بيانات وهمية للخدمات
-  final List<_Service> services = [
-    _Service('حول / ارسل', 'ارسال حوالة لعميل خارجي...', FontAwesomeIcons.paperPlane),
-    _Service('استقبل أموالك', 'استقبال حوالات من مختلف القنوات', FontAwesomeIcons.wallet),
-    _Service('سداد وشحن', 'شحن رصيد وباقات إنترنت وهاتف ثابت', FontAwesomeIcons.mobileAlt),
-    _Service('الألعاب', 'اشتري ألعابك المفضلة', FontAwesomeIcons.gamepad),
-    _Service('اشتراكات وبطاقات', 'بطاقات هدايا واشتراكات', FontAwesomeIcons.idCard),
-    _Service('مواصلات', 'حجز مواصلات عبر Muasalat', FontAwesomeIcons.bus, highlighted: true),
-  ];
+  const WalletTransfersPage({Key? key, required this.walletId}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      // Drawer جانبي
-      drawer: Drawer(
-        child: Container(color: MyApp.primry),
-      ),
-      // AppBar شفاف مع المعلومات
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.notifications_none, color: Colors.white),
-          onPressed: () {},
-        ),
-        title: Text('صباح الخير محمد', style: TextStyle(fontWeight: FontWeight.bold)),
-        centerTitle: false,
-        actions: [
-          Icon(Icons.remove_red_eye, color: Colors.white70),
-          SizedBox(width: 4),
-          Text('0.00', style: TextStyle(fontSize: 16)),
-          SizedBox(width: 4),
-          Text('YER', style: TextStyle(color: MyApp.accent, fontWeight: FontWeight.bold)),
-          SizedBox(width: 16),
-        ],
-      ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // شريط التحديث
-          Container(
-            width: double.infinity,
-            color: MyApp.cardColor,
-            padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            child: Text(
-              'يجب عليك تحديث البيانات',
-              style: TextStyle(color: MyApp.textLight),
-            ),
-          ),
-          SizedBox(height: 12),
-          // شبكة الخدمات
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: GridView.builder(
-                itemCount: services.length,
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 1.2,
-                ),
-                itemBuilder: (context, index) {
-                  final s = services[index];
-                  return _ServiceCard(service: s);
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
-      // زر مركزي بارز
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: MyApp.accent,
-        elevation: 6,
-        child: Icon(Icons.qr_code_scanner, color: MyApp.primry, size: 32),
-        onPressed: () {},
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      // شريط التنقل السفلي مع نوتش للزر المركزي
-      bottomNavigationBar: BottomAppBar(
-        color: MyApp.cardColor,
-        shape: CircularNotchedRectangle(),
-        notchMargin: 8,
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _NavBarIcon(icon: Icons.more_horiz, onTap: () {}),
-              _NavBarIcon(icon: Icons.check_box, onTap: () {}),
-              SizedBox(width: 48), // مسافة للـ FAB
-              _NavBarIcon(icon: Icons.copy, onTap: () {}),
-              _NavBarIcon(icon: Icons.home, onTap: () {}),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  State<WalletTransfersPage> createState() => _WalletTransfersPageState();
 }
 
-// نموذج بيانات خدمة
-class _Service {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final bool highlighted;
-  _Service(this.title, this.subtitle, this.icon, {this.highlighted = false});
-}
-
-// كرت الخدمة مع تأثير ظل وتحريك خفيف عند الضغط
-class _ServiceCard extends StatefulWidget {
-  final _Service service;
-  const _ServiceCard({required this.service});
-
-  @override
-  __ServiceCardState createState() => __ServiceCardState();
-}
-
-class __ServiceCardState extends State<_ServiceCard> with SingleTickerProviderStateMixin {
-  late AnimationController _anim;
-  late Animation<double> _scale;
+class _WalletTransfersPageState extends State<WalletTransfersPage> {
+  bool _isLoading = true;
+  List<dynamic> _transfers = [];
+  String _error = '';
 
   @override
   void initState() {
     super.initState();
-    _anim = AnimationController(vsync: this, duration: Duration(milliseconds: 100));
-    _scale = Tween<double>(begin: 1.0, end: 0.95).animate(_anim);
+    _fetchTransfers();
   }
 
-  @override
-  void dispose() {
-    _anim.dispose();
-    super.dispose();
+  Future<void> _fetchTransfers() async {
+    try {
+      await AuthService.refreshToken();
+      final headers = await AuthService.getAuthHeader();
+
+      final response = await http.get(
+        Uri.parse('${ips.apiUrl}transfers/'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        final filteredTransfers = data.where((transfer) =>
+        transfer['from_wallet'] == widget.walletId).toList();
+
+        setState(() {
+          _transfers = filteredTransfers;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _error = 'فشل في تحميل البيانات: ${response.statusCode}';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _error = 'حدث خطأ: $e';
+        _isLoading = false;
+      });
+    }
   }
 
-  void _onTapDown(_) => _anim.forward();
-  void _onTapUp(_) => _anim.reverse();
-
-  @override
-  Widget build(BuildContext context) {
-    final s = widget.service;
-    return GestureDetector(
-      onTapDown: _onTapDown,
-      onTapUp: _onTapUp,
-      onTapCancel: () => _anim.reverse(),
-      onTap: () {},
-      child: ScaleTransition(
-        scale: _scale,
-        child: Container(
-          decoration: BoxDecoration(
-            color: s.highlighted ? MyApp.accent : MyApp.cardColor,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.4),
-                blurRadius: 8,
-                offset: Offset(0, 4),
-              )
-            ],
+  Widget _buildTransferCard(Map<String, dynamic> transfer) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: MyApp.primry,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [
+          BoxShadow(
+            color: Colors.black54,
+            blurRadius: 20,
+            offset: Offset(1, 6),
           ),
-          padding: EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(s.icon, size: 28, color: s.highlighted ? MyApp.primry : Colors.white),
-              Spacer(),
-              Text(
-                s.title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: s.highlighted ? MyApp.primry : Colors.white,
-                ),
-              ),
-              SizedBox(height: 4),
-              Text(
-                s.subtitle,
-                style: TextStyle(fontSize: 12, color: MyApp.textLight),
-              ),
-            ],
-          ),
-        ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildRow('المبلغ:', '${transfer['amount']} ر.ي'),
+          _buildRow('الحالة:', transfer['status'] == 'pending' ? 'قيد التنفيذ' : 'تمت'),
+          _buildRow('إلى المحفظة:', '${transfer['to_wallet']}'),
+          _buildRow('تاريخ الإنشاء:', transfer['created_at'].toString().split('T').first),
+        ],
       ),
     );
   }
-}
 
-// أيقونة في شريط التنقل السفلي
-class _NavBarIcon extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  const _NavBarIcon({required this.icon, required this.onTap});
+  Widget _buildRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: TextStyle(color: MyApp.textLight, fontSize: 14))),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold,color: MyApp.textLight,fontSize: 16)),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return InkResponse(
-      onTap: onTap,
-      radius: 24,
-      child: Icon(icon, size: 28, color: Colors.white70),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('عمليات التحويل'),
+        backgroundColor: MyApp.primry,
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error.isNotEmpty
+          ? Center(child: Text(_error, style: const TextStyle(color: Colors.red)))
+          : _transfers.isEmpty
+          ? const Center(child: Text('لا توجد عمليات تحويل.'))
+          : ListView.builder(
+        itemCount: _transfers.length,
+        itemBuilder: (context, index) =>
+            _buildTransferCard(_transfers[index]),
+      ),
     );
   }
 }

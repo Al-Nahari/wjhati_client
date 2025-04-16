@@ -41,16 +41,18 @@ dependencies:
   provider:
   latlong2: ^0.9.1
   geolocator: ^12.0.0
-  flutter_typeahead: ^4.0.0
+  flutter_typeahead: ^5.2.0
   fluttertoast:
   shared_preferences:
   cached_network_image: ^3.4.0
   path:
   image_picker:
   file_picker:
-  permission_handler:
+  permission_handler: ^11.3.1
   mqtt_client:
   font_awesome_flutter: ^10.8.0
+  shimmer: ^3.0.0
+  flutter_svg: ^2.0.10+1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -60,7 +62,7 @@ dev_dependencies:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^3.0.0
+  flutter_lints: ^4.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

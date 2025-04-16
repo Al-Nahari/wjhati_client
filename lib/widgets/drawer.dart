@@ -50,7 +50,7 @@ class AppDrawer extends StatelessWidget {
               Navigator.pop(context);
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) =>  ChatListScreen()),
+                MaterialPageRoute(builder: (context) =>  ModernChatListScreen()),
               );
             },
           ),

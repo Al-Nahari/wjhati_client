@@ -33,12 +33,13 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (ctx) =>isLoggedIn ? const HomeScreen() : const LoginScreen(),
         '/Home': (ctx) => HomeScreen(),
-        '/Complaint': (ctx) => ChatListScreen(),
+        '/Complaint': (ctx) => ModernChatListScreen(),
         '/TripTracking': (ctx) => BookingsPage(),
         '/Wallet': (ctx) => WalletPage(),
         '/Login': (ctx) => LoginScreen(),
-        '/HomePage': (ctx) => HomePage(),
+        '/HomePage': (ctx) => WalletTransfersPage(walletId: -1,),
       },
     );
   }
 }
+

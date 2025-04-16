@@ -2,11 +2,14 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:untitled5/screens/trip_tracking_screen.dart';
 import '../main.dart';
 import '../services/AuthService.dart';
 import '../services/ip.dart';
+import 'complaint_screen.dart';
 import 'home_main.dart';
 import 'home_screen.dart';
+int walletID = 0 ;
 
 class WalletPage extends StatefulWidget {
   const WalletPage({Key? key}) : super(key: key);
@@ -31,12 +34,15 @@ class _WalletPageState extends State<WalletPage> {
   void initState() {
     super.initState();
     _fetchWalletData();
+
+
   }
 
   Future<void> _fetchWalletData() async {
     setState(() {
       _isLoading = true;
       _errorMessage = '';
+
     });
 
     try {
@@ -87,12 +93,13 @@ class _WalletPageState extends State<WalletPage> {
         children: [
           Positioned(top: 20, right: 20, child: Icon(Icons.credit_card, size: 50, color: Colors.white30)),
           Positioned(bottom: -20, left: -20, child: _buildCircle()),
-          Padding(
+        Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('رقم المحفظة: ${_walletData!['id']}', style: _textStyle(16, true)),
+                Text('رقم المحفظة: ${_walletData!['id']} ${walletID = _walletData!['id']
+                }', style: _textStyle(16, true)),
                 const Spacer(),
                 Row(
                   children: [
@@ -204,7 +211,6 @@ class _WalletPageState extends State<WalletPage> {
           ),
           const SizedBox(width: 20),
           _buildActionButton("رحلة", FontAwesomeIcons.taxi, () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) =>  HomePage()));
           }),
         ],
       ),
@@ -268,15 +274,20 @@ class __ServiceCardState extends State<_ServiceCard> with SingleTickerProviderSt
       onTapCancel: () => _anim.reverse(),
       onTap: () {
         final title = widget.service.title;
-
         if (title.contains("أموالك")) {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const WalletPage()));
-        } else if (title.contains("سجل الرحلات")) {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => WalletTransfersPage(walletId: walletID),
+            ),
+          );
+        }
+        else if (title.contains("سجل الرحلات")) {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const BookingsPage()));
         } else if (title.contains("بيانات التسجيل")) {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
         } else if (title.contains("شكوى") || title.contains("تقييم")) {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+          Navigator.push(context, MaterialPageRoute(builder: (_) =>  ModernChatListScreen()));
         }
       },
 
