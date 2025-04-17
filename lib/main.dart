@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:untitled5/screens/home_main.dart';
+import 'package:untitled5/screens/TransfersPage.dart';
 import 'package:untitled5/screens/home_screen.dart';
 import 'package:untitled5/services/AuthService.dart';
 
@@ -19,7 +19,7 @@ void main() async {
 class MyApp extends StatelessWidget {
   static const Color primry =  Color(0xff2d4960);
   static const Color cardColor = Color(0xff2d4960);
-  static const Color accent = Color(0xFF4CC1FD); // أصفر ذهبي
+  static const Color accent = Color(0xff215d8e); // أصفر ذهبي
   static const Color textLight = Colors.white;
   final bool isLoggedIn;
   const MyApp({Key? key, required this.isLoggedIn}) : super(key: key);

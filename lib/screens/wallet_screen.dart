@@ -2,12 +2,13 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:untitled5/screens/profile.dart';
 import 'package:untitled5/screens/trip_tracking_screen.dart';
 import '../main.dart';
 import '../services/AuthService.dart';
 import '../services/ip.dart';
 import 'complaint_screen.dart';
-import 'home_main.dart';
+import 'TransfersPage.dart';
 import 'home_screen.dart';
 int walletID = 0 ;
 
@@ -285,7 +286,7 @@ class __ServiceCardState extends State<_ServiceCard> with SingleTickerProviderSt
         else if (title.contains("سجل الرحلات")) {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const BookingsPage()));
         } else if (title.contains("بيانات التسجيل")) {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+          Navigator.push(context, MaterialPageRoute(builder: (_) =>  UserProfilePage()));
         } else if (title.contains("شكوى") || title.contains("تقييم")) {
           Navigator.push(context, MaterialPageRoute(builder: (_) =>  ModernChatListScreen()));
         }

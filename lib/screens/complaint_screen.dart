@@ -13,15 +13,15 @@ import '../services/ip.dart';
 // 1. تعريف ثيم التطبيق خارج أي كلاس
 const ColorScheme _appColorScheme = ColorScheme(
   brightness: Brightness.light,
-  primary: Color(0xFF6750A4),
+  primary: Color(0xff2d4960),
   onPrimary: Color(0xFFFFFFFF),
   primaryContainer: Color(0xFFEADDFF),
-  onPrimaryContainer: Color(0xFF21005E),
-  secondary: Color(0xFF625B71),
+  onPrimaryContainer: Color(0xFF005C88),
+  secondary: Color(0xB8406887),
   onSecondary: Color(0xFFFFFFFF),
   secondaryContainer: Color(0xFFE8DEF8),
   onSecondaryContainer: Color(0xFF1D192B),
-  tertiary: Color(0xFF7D5260),
+  tertiary: Color(0xff2d4960),
   onTertiary: Color(0xFFFFFFFF),
   tertiaryContainer: Color(0xFFFFD8E4),
   onTertiaryContainer: Color(0xFF31111D),
@@ -614,14 +614,6 @@ class _ModernChatScreenState extends State<ModernChatScreen> {
               onTap: () {
                 Navigator.pop(context);
                 _pickImage();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.insert_drive_file),
-              title: const Text('ملف من الجهاز'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickFile();
               },
             ),
           ],
