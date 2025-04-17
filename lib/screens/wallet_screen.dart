@@ -288,7 +288,7 @@ class __ServiceCardState extends State<_ServiceCard> with SingleTickerProviderSt
         } else if (title.contains("بيانات التسجيل")) {
           Navigator.push(context, MaterialPageRoute(builder: (_) =>  UserProfilePage()));
         } else if (title.contains("شكوى") || title.contains("تقييم")) {
-          Navigator.push(context, MaterialPageRoute(builder: (_) =>  ChatListScreen()));
+          Navigator.push(context, MaterialPageRoute(builder: (_) =>  ModernChatListScreen()));
         }
       },
 

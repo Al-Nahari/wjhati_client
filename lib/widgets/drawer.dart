@@ -164,7 +164,7 @@ class _AppDrawerState extends State<AppDrawer> {
         _buildMenuItem(
           icon: Icons.support_agent,
           title: 'الدعم الفني',
-          route: const ChatListScreen(),
+          route: const ModernChatListScreen(),
         ),
         const Divider(height: 40, indent: 20, endIndent: 20),
         _buildMenuItem(
