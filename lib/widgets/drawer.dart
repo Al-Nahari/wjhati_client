@@ -1,12 +1,11 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:untitled5/main.dart';
-import '../screens/complaint_screen.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+
 import '../screens/trip_tracking_screen.dart';
 import '../screens/wallet_screen.dart';
+import '../screens/modern_chat_list_screen.dart';
 import '../services/AuthService.dart';
-import '../services/ip.dart';
+import '../main.dart';
 
 class AppDrawer extends StatefulWidget {
   const AppDrawer({Key? key, required Map userData}) : super(key: key);
@@ -16,39 +15,36 @@ class AppDrawer extends StatefulWidget {
 }
 
 class _AppDrawerState extends State<AppDrawer> {
-
   Map<String, dynamic>? _userData;
   bool _isLoading = true;
-  String? _error;
+  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _fetchUser();
+    _loadUserData();
   }
 
-  Future<void> _fetchUser() async {
+  Future<void> _loadUserData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
     try {
-      setState(() => _isLoading = true);
+      // تأكد من تحديث التوكن ثم جلب بيانات المستخدم المحفوظة
       await AuthService.refreshToken();
-      final response = await http.get(
-        Uri.parse('${ips.apiUrl}user/'),
-        headers: await AuthService.getAuthHeader(),
-      );
-      _handleResponse(response);
+      final data = await AuthService.getUserData();
+      setState(() => _userData = data);
     } catch (e) {
-      setState(() => _error = 'فشل في التحميل: ${e.toString()}');
+      setState(() => _errorMessage = 'فشل في تحميل بيانات المستخدم');
+      Fluttertoast.showToast(
+        msg: _errorMessage!,
+        backgroundColor: Colors.redAccent,
+        textColor: Colors.white,
+      );
     } finally {
       setState(() => _isLoading = false);
-    }
-  }
-
-  void _handleResponse(http.Response response) {
-    if (response.statusCode == 200) {
-      final data = json.decode(utf8.decode(response.bodyBytes));
-      _userData = data is List ? data.first : data;
-    } else {
-      throw Exception('خطأ في الخادم: ${response.statusCode}');
     }
   }
 
@@ -72,6 +68,7 @@ class _AppDrawerState extends State<AppDrawer> {
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+      width: double.infinity,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [MyApp.primry, MyApp.primry.withOpacity(0.9)],
@@ -103,7 +100,7 @@ class _AppDrawerState extends State<AppDrawer> {
               child: _isLoading
                   ? const CircularProgressIndicator(color: MyApp.primry)
                   : Text(
-                _userData?['username']?.toString().substring(0,1) ?? '?',
+                (_userData?['username'] as String? ?? '?').substring(0, 1).toUpperCase(),
                 style: const TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
@@ -114,11 +111,16 @@ class _AppDrawerState extends State<AppDrawer> {
           ),
           const SizedBox(width: 20),
           Expanded(
-            child: Column(
+            child: _isLoading
+                ? const Text(
+              'جاري التحميل...',
+              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+            )
+                : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _isLoading ? 'جاري التحميل...' : _userData?['username'] ?? 'مستخدم',
+                  _userData?['username'] as String? ?? 'مستخدم',
                   style: const TextStyle(
                     fontSize: 20,
                     color: Colors.white,
@@ -127,19 +129,16 @@ class _AppDrawerState extends State<AppDrawer> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                if (_userData?['email'] != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 5),
-                    child: Text(
-                      _userData!['email'],
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white.withOpacity(0.9),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                const SizedBox(height: 4),
+                Text(
+                  _userData?['email'] as String? ?? 'لا يوجد بريد إلكتروني',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white.withOpacity(0.9),
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
@@ -155,26 +154,22 @@ class _AppDrawerState extends State<AppDrawer> {
         _buildMenuItem(
           icon: Icons.directions_car_filled,
           title: 'تتبع الرحلات',
-          color: MyApp.primry,
           route: const BookingsPage(),
         ),
         _buildMenuItem(
           icon: Icons.account_balance_wallet,
           title: 'المحفظة',
-          color:MyApp.primry,
           route: const WalletPage(),
         ),
         _buildMenuItem(
           icon: Icons.support_agent,
           title: 'الدعم الفني',
-          color: MyApp.primry,
-          route: const ModernChatListScreen(),
+          route: const ChatListScreen(),
         ),
         const Divider(height: 40, indent: 20, endIndent: 20),
         _buildMenuItem(
           icon: Icons.logout,
           title: 'تسجيل الخروج',
-          color: Colors.redAccent,
           isLogout: true,
         ),
       ],
@@ -184,7 +179,6 @@ class _AppDrawerState extends State<AppDrawer> {
   Widget _buildMenuItem({
     required IconData icon,
     required String title,
-    required Color color,
     Widget? route,
     bool isLogout = false,
   }) {
@@ -199,10 +193,10 @@ class _AppDrawerState extends State<AppDrawer> {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.2),
+            color: MyApp.primry.withOpacity(0.2),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: color),
+          child: Icon(icon, color: isLogout ? Colors.redAccent : MyApp.primry),
         ),
         title: Text(
           title,

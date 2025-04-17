@@ -7,7 +7,7 @@ import 'package:untitled5/screens/trip_tracking_screen.dart';
 import '../main.dart';
 import '../services/AuthService.dart';
 import '../services/ip.dart';
-import 'complaint_screen.dart';
+import 'modern_chat_list_screen.dart';
 import 'TransfersPage.dart';
 import 'home_screen.dart';
 int walletID = 0 ;
@@ -288,7 +288,7 @@ class __ServiceCardState extends State<_ServiceCard> with SingleTickerProviderSt
         } else if (title.contains("بيانات التسجيل")) {
           Navigator.push(context, MaterialPageRoute(builder: (_) =>  UserProfilePage()));
         } else if (title.contains("شكوى") || title.contains("تقييم")) {
-          Navigator.push(context, MaterialPageRoute(builder: (_) =>  ModernChatListScreen()));
+          Navigator.push(context, MaterialPageRoute(builder: (_) =>  ChatListScreen()));
         }
       },
 

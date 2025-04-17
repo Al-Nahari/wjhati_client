@@ -4,7 +4,7 @@ import 'package:untitled5/screens/home_screen.dart';
 import 'package:untitled5/services/AuthService.dart';
 
 import 'screens/LoginScreen.dart';
-import 'screens/complaint_screen.dart';
+import 'screens/modern_chat_list_screen.dart';
 import 'screens/trip_tracking_screen.dart';
 import 'screens/wallet_screen.dart';
 
@@ -19,7 +19,7 @@ void main() async {
 class MyApp extends StatelessWidget {
   static const Color primry =  Color(0xff2d4960);
   static const Color cardColor = Color(0xff2d4960);
-  static const Color accent = Color(0xff215d8e); // أصفر ذهبي
+  static const Color accent = Color(0xff2d4960); // أصفر ذهبي
   static const Color textLight = Colors.white;
   final bool isLoggedIn;
   const MyApp({Key? key, required this.isLoggedIn}) : super(key: key);
@@ -33,7 +33,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/': (ctx) =>isLoggedIn ? const HomeScreen() : const LoginScreen(),
         '/Home': (ctx) => HomeScreen(),
-        '/Complaint': (ctx) => ModernChatListScreen(),
+        '/Complaint': (ctx) => ChatListScreen(),
         '/TripTracking': (ctx) => BookingsPage(),
         '/Wallet': (ctx) => WalletPage(),
         '/Login': (ctx) => LoginScreen(),
