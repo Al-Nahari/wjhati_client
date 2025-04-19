@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:untitled5/screens/profile.dart';
 import 'package:untitled5/screens/trip_tracking_screen.dart';
 import '../main.dart';
 import '../services/AuthService.dart';
 import '../services/ip.dart';
+import '../services/notification_provider.dart';
 import 'modern_chat_list_screen.dart';
 import 'TransfersPage.dart';
 import 'home_screen.dart';
@@ -202,6 +204,31 @@ class _WalletPageState extends State<WalletPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          Consumer<NotificationProvider>(
+            builder: (_, prov, __) => Stack(
+              alignment: Alignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.notifications),
+                  onPressed: () => Navigator.pushNamed(context, '/Notifications'),
+                ),
+                if (prov.unreadCount > 0)
+                  Positioned(
+                    right: 8,
+                    top: 8,
+                    child: CircleAvatar(
+                      radius: 8,
+                      backgroundColor: Colors.redAccent,
+                      child: Text(
+                        prov.unreadCount.toString(),
+                        style: const TextStyle(fontSize: 10, color: Colors.white),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
           _buildActionButton("رسائل", FontAwesomeIcons.box, () {}),
           const SizedBox(width: 20),
           FloatingActionButton(

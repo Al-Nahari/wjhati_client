@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
+import '../screens/notifications_screen.dart';
 import '../screens/trip_tracking_screen.dart';
 import '../screens/wallet_screen.dart';
 import '../screens/modern_chat_list_screen.dart';
@@ -162,6 +163,11 @@ class _AppDrawerState extends State<AppDrawer> {
           route: const WalletPage(),
         ),
         _buildMenuItem(
+          icon: Icons.notifications_active,
+          title: 'الاشعارات',
+          route: const NotificationsPage(),
+        ),
+        _buildMenuItem(
           icon: Icons.support_agent,
           title: 'الدعم الفني',
           route: const ModernChatListScreen(),
@@ -172,6 +178,8 @@ class _AppDrawerState extends State<AppDrawer> {
           title: 'تسجيل الخروج',
           isLogout: true,
         ),
+
+
       ],
     );
   }
