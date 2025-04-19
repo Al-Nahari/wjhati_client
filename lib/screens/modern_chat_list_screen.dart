@@ -8,6 +8,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shimmer/shimmer.dart';
+import '../services/AuthService.dart';
 import '../services/ip.dart';
 
 // 1. تعريف ثيم التطبيق خارج أي كلاس
@@ -82,7 +83,9 @@ class _ChatListBodyState extends State<_ChatListBody> {
 
   Future<void> _loadChats() async {
     try {
-      final response = await http.get(Uri.parse(_chatsApiUrl));
+      await AuthService.refreshToken();
+      final headers = await AuthService.getAuthHeader();
+      final response = await http.get(Uri.parse('${ips.apiUrl}chats/'), headers: headers);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes)) as List;
@@ -109,7 +112,9 @@ class _ChatListBodyState extends State<_ChatListBody> {
 
   Future<int> _getUnreadCount(int chatId) async {
     try {
-      final response = await http.get(Uri.parse('${ips.apiUrl}messages/'));
+      await AuthService.refreshToken();
+      final headers = await AuthService.getAuthHeader();
+      final response = await http.get(Uri.parse('${ips.apiUrl}messages/'), headers: headers);
       if (response.statusCode == 200) {
         final messages = jsonDecode(utf8.decode(response.bodyBytes)) as List;
         return messages.where((m) =>
@@ -229,7 +234,6 @@ class _ChatListItem extends StatelessWidget {
         chat['title'] ?? 'الدردشة ${chat['id']}',
         style: const TextStyle(fontWeight: FontWeight.w600),
       ),
-      subtitle: Text(_formatParticipants(chat['participants'])),
       trailing: unreadCount > 0
           ? _UnreadBadge(count: unreadCount)
           : const Icon(Icons.chevron_right),
@@ -364,7 +368,9 @@ class _ModernChatScreenState extends State<ModernChatScreen> {
 
   Future<void> _loadMessages() async {
     try {
-      final response = await http.get(Uri.parse('${ips.apiUrl}messages/'));
+      await AuthService.refreshToken();
+      final headers = await AuthService.getAuthHeader();
+      final response = await http.get(Uri.parse('${ips.apiUrl}messages/'), headers: headers);
       if (response.statusCode == 200) {
         final data = jsonDecode(utf8.decode(response.bodyBytes)) as List;
         setState(() {
@@ -456,6 +462,8 @@ class _ModernChatScreenState extends State<ModernChatScreen> {
   }
 
   Future<void> _sendFileMessage() async {
+    await AuthService.refreshToken();
+    final headers = await AuthService.getAuthHeader();
     final request = http.MultipartRequest(
       'POST',
       Uri.parse('${ips.apiUrl}messages/'),

@@ -1,6 +1,8 @@
 import 'dart:convert';
+import 'package:flutter/src/widgets/framework.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../screens/trip_tracking_screen.dart';
 import '../services/ip.dart';
 class AuthService {
   // نقطة النهاية الخاصة بتسجيل الدخول
@@ -78,7 +80,7 @@ class AuthService {
   }
 
   /// دالة تسجيل الخروج: إزالة بيانات المستخدم من SharedPreferences
-  static Future<void> logout() async {
+  static Future<void> logout( ) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('user_data');
   }
@@ -87,6 +89,7 @@ class AuthService {
   static Future<Map<String, String>> getAuthHeader() async {
     final prefs = await SharedPreferences.getInstance();
     final userDataString = prefs.getString('user_data');
+     print(userDataString);
     if (userDataString == null) {
       return {};
     }

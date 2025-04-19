@@ -41,8 +41,7 @@ class _BookingsPageState extends State<BookingsPage> {
     try {
       await AuthService.refreshToken();
       final headers = await AuthService.getAuthHeader();
-      final url = Uri.parse('${ips.apiUrl}bookings/');
-      final response = await http.get(url, headers: headers);
+      final response = await http.get(Uri.parse('${ips.apiUrl}bookings/'), headers: headers);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
