@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/date_symbol_data_local.dart';       // 1️⃣
-import 'package:untitled5/screens/notifications_screen.dart';
-import 'package:untitled5/services/notification_provider.dart';
+import '../screens/notifications_screen.dart';
+import '../services/notification_provider.dart';
 import 'services/AuthService.dart';
 import 'services/notification_service.dart';
 import 'screens/LoginScreen.dart';
@@ -53,7 +53,7 @@ class MyApp extends StatelessWidget {
         '/Login': (_) => const LoginScreen(),
         '/Home': (_) => const HomeScreen(),
         '/Complaint': (_) => const ModernChatListScreen(),
-        '/TripTracking': (_) => const BookingsPage(),
+        '/TripTracking': (_) => const TripsScreen(),
         '/Wallet': (_) => const WalletPage(),
         '/HomePage': (_) => WalletTransfersPage(walletId: -1),
         '/Notifications': (_) => const NotificationsPage(),

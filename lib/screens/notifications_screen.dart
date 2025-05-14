@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:untitled5/services/notification_provider.dart';
+import '../services/notification_provider.dart';
 
 class NotificationsPage extends StatefulWidget {
   const NotificationsPage({Key? key}) : super(key: key);
@@ -29,33 +29,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
         title: const Text('الإشعارات'),
         actions: [
           // أيقونة الإشعارات + Badge
-          Consumer<NotificationProvider>(
-            builder: (_, prov, __) {
-              return IconButton(
-                onPressed: () => Navigator.pushNamed(context, '/Notifications'),
-                icon: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    const Icon(Icons.notifications),
-                    if (prov.unreadCount > 0)
-                      Positioned(
-                        right: -2,
-                        top: -2,
-                        child: CircleAvatar(
-                          radius: 8,
-                          backgroundColor: Colors.redAccent,
-                          child: Text(
-                            prov.unreadCount.toString(),
-                            style: const TextStyle(fontSize: 10, color: Colors.white),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              );
-            },
-          ),
-          // زر التحديث
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => context.read<NotificationProvider>().loadNotifications(),

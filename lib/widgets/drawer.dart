@@ -155,7 +155,7 @@ class _AppDrawerState extends State<AppDrawer> {
         _buildMenuItem(
           icon: Icons.directions_car_filled,
           title: 'تتبع الرحلات',
-          route: const BookingsPage(),
+          route: const TripsScreen(),
         ),
         _buildMenuItem(
           icon: Icons.account_balance_wallet,

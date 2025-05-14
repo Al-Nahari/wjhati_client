@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/src/widgets/framework.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:untitled5/services/ip.dart';
+import '../services/ip.dart';
 class AuthService {
   // نقطة النهاية الخاصة بتسجيل الدخول
   static const String _loginUrl = '${ips.apiUrl}api/token/';

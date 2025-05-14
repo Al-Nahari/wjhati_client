@@ -7,7 +7,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:http/http.dart' as http;
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:untitled5/screens/wallet_screen.dart';
+import '../screens/wallet_screen.dart';
 
 import '../main.dart';
 import '../widgets/drawer.dart';

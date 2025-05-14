@@ -1,407 +1,739 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
-import 'package:mqtt_client/mqtt_client.dart';
-import 'package:mqtt_client/mqtt_server_client.dart';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 
-// تأكد من استيراد AuthService من المسار المناسب في مشروعك
 import '../services/AuthService.dart';
 import '../services/ip.dart';
-/// صفحة عرض قائمة الحجوزات مع إمكانية إلغاء الحجز والانتقال لتفاصيل الرحلة
-class BookingsPage extends StatefulWidget {
-  const BookingsPage({Key? key}) : super(key: key);
+
+class TripsScreen extends StatefulWidget {
+  const TripsScreen({super.key});
 
   @override
-  _BookingsPageState createState() => _BookingsPageState();
+  State<TripsScreen> createState() => _TripsScreenState();
 }
 
-class _BookingsPageState extends State<BookingsPage> {
-  bool isLoading = true;
-  List<dynamic> bookings = [];
-  String errorMessage = '';
+class _TripsScreenState extends State<TripsScreen> {
+  final Color primaryColor = const Color(0xff2d4960);
+  List<Map<String, dynamic>> _trips = [];
+  bool _isLoading = true;
+  String _errorMessage = '';
 
   @override
   void initState() {
     super.initState();
-    _fetchBookings();
+    _fetchTrips();
   }
 
-  /// جلب الحجوزات من الخادم
-  Future<void> _fetchBookings() async {
-    setState(() {
-      isLoading = true;
-      errorMessage = '';
-    });
-
+  Future<void> _fetchTrips() async {
     try {
-      await AuthService.refreshToken();
       final headers = await AuthService.getAuthHeader();
-      final response = await http.get(Uri.parse('${ips.apiUrl}bookings/'), headers: headers);
+      final userData = await AuthService.getUserData();
+      final uri = Uri.parse('${ips.apiUrl}trips/').replace(
+        queryParameters: {'user': userData['id'].toString()},
+      );
+
+      final response = await http.get(
+        uri,
+        headers: headers,
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data is List) {
-          setState(() {
-            bookings = data;
-            isLoading = false;
-          });
-        } else {
-          setState(() {
-            errorMessage = 'تنسيق البيانات من الخادم غير صحيح.';
-            isLoading = false;
-          });
-        }
-      } else {
+        final List<dynamic> data = json.decode(utf8.decode(response.bodyBytes));
         setState(() {
-          errorMessage = 'حدث خطأ: ${response.statusCode}';
-          isLoading = false;
+          _trips = data.cast<Map<String, dynamic>>();
+          _isLoading = false;
         });
+      } else {
+        throw Exception('Failed to load data: ${response.statusCode}');
       }
+    } on TimeoutException {
+      setState(() {
+        _errorMessage = 'Request timeout. Please try again.';
+        _isLoading = false;
+      });
     } catch (e) {
       setState(() {
-        errorMessage = 'حدث خطأ أثناء الاتصال بالخادم: $e';
-        isLoading = false;
+        _errorMessage = 'An error occurred: ${e.toString()}';
+        _isLoading = false;
       });
     }
   }
 
-  /// إلغاء الحجز بعد تأكيد المستخدم
-  Future<void> _cancelBooking(int bookingId) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('تأكيد الإلغاء'),
-        content: const Text('هل أنت متأكد من إلغاء هذا الحجز؟'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('لا'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('نعم'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm != true) return;
-
-    try {
-      await AuthService.refreshToken();
-      final headers = await AuthService.getAuthHeader();
-      final url = Uri.parse('${ips.apiUrl}bookings/$bookingId/');
-      final response = await http.patch(
-        url,
-        headers: {
-          ...headers,
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({"status": "cancelled"}),
-      );
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم إلغاء الحجز بنجاح')),
-        );
-        _fetchBookings();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('فشل إلغاء الحجز: ${response.statusCode}')),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('حدث خطأ أثناء إلغاء الحجز: $e')),
-      );
-    }
-  }
-
-  /// الانتقال إلى صفحة تفاصيل الرحلة باستخدام معرف الرحلة
-  void _showTripDetails(int tripId) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => TripDetailsPage(tripId: tripId),
-      ),
-    );
-  }
-
-  /// بناء بطاقة عرض تفاصيل كل حجز
-  Widget _buildBookingItem(dynamic booking) {
-    final bool cancelled = booking['status'] == 'cancelled';
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'رقم الحجز: ${booking['id']}',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Chip(
-                  label: Text(
-                    booking['status'],
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                  backgroundColor: cancelled ? Colors.redAccent : Colors.green,
-                ),
-                const Spacer(),
-                Text('السعر: ${booking['total_price']}'),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-                  onPressed: cancelled ? null : () => _cancelBooking(booking['id']),
-                  child: const Text('إلغاء الحجز'),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: () => _showTripDetails(booking['trip']),
-                  child: const Text('عرض الرحلة'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// بناء قائمة الحجوزات مع إمكانية التحديث بالسحب
-  Widget _buildBookingsList() {
-    if (bookings.isEmpty) {
-      return const Center(child: Text('لا توجد حجوزات.'));
-    }
-    return RefreshIndicator(
-      onRefresh: _fetchBookings,
-      child: ListView.builder(
-        physics: const AlwaysScrollableScrollPhysics(),
-        itemCount: bookings.length,
-        itemBuilder: (context, index) => _buildBookingItem(bookings[index]),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('جميع الحجوزات'),
+        title: const Text('Available Trips',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        centerTitle: true,
+        backgroundColor: primaryColor,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _fetchBookings,
+            onPressed: _fetchTrips,
+            tooltip: 'Refresh',
           ),
         ],
       ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : errorMessage.isNotEmpty
-          ? Center(
-        child: Text(
-          errorMessage,
-          style: const TextStyle(fontSize: 16, color: Colors.red),
-          textAlign: TextAlign.center,
-        ),
-      )
-          : _buildBookingsList(),
+      body: _buildContent(),
     );
   }
-}
 
-/// صفحة تفاصيل الرحلة مع تتبع المسار باستخدام MQTT
-class TripDetailsPage extends StatefulWidget {
-  final int tripId;
-  const TripDetailsPage({Key? key, required this.tripId}) : super(key: key);
-
-  @override
-  _TripDetailsPageState createState() => _TripDetailsPageState();
-}
-
-class _TripDetailsPageState extends State<TripDetailsPage> {
-  late MqttChannelService _mqttChannelService;
-  // قائمة لتخزين بيانات الرحلة الواردة (JSON)
-  List<Map<String, dynamic>> _trips = [];
-  // قائمة نقاط المسار لرسمه على الخريطة
-  List<LatLng> _route = [];
-  // متحكم الخريطة
-  final MapController _mapController = MapController();
-  late StreamSubscription<String> _subscription;
-
-  @override
-  void initState() {
-    super.initState();
-    _mqttChannelService = MqttChannelService();
-    // الاشتراك في القناة لاستقبال الرسائل
-    _subscription = _mqttChannelService.messageStream.listen((message) {
-      _handleMessage(message);
-    });
-    _mqttChannelService.connect();
-  }
-
-  // دالة لمعالجة الرسائل الواردة من القناة
-  void _handleMessage(String message) {
-    // تقسيم الرسالة إلى أسطر للبحث عن تنسيق JSON صالح
-    List<String> lines = message.split('\n');
-    for (var line in lines) {
-      line = line.trim();
-      if (line.startsWith('{') && line.endsWith('}')) {
-        try {
-          Map<String, dynamic> data = jsonDecode(line);
-          double? lat = _parseCoordinate(data['lat']);
-          double? lng = _parseCoordinate(data['lng']);
-          if (lat != null && lng != null) {
-            setState(() {
-              _trips.add(data);
-              _route.add(LatLng(lat, lng));
-            });
-            // تحديث موقع الكاميرا إلى الموقع الجديد
-            _mapController.move(LatLng(lat, lng), 15);
-          }
-        } catch (e) {
-          print("خطأ في فك تشفير JSON: $e");
-        }
-      } else {
-        print("الرسالة ليست بتنسيق JSON: $line");
-      }
+  Widget _buildContent() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
     }
-  }
 
-  double? _parseCoordinate(dynamic value) {
-    if (value is num) return value.toDouble();
-    if (value is String) {
-      try {
-        return double.parse(value);
-      } catch (e) {
-        print("خطأ في تحويل الإحداثية: $value");
-        return null;
-      }
-    }
-    return null;
-  }
-
-  @override
-  void dispose() {
-    _subscription.cancel();
-    _mqttChannelService.disconnect();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // تحديد مركز الخريطة بناءً على آخر نقطة تم استقبالها
-    LatLng center = _route.isNotEmpty ? _route.last : LatLng(0.0, 0.0);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('تفاصيل الرحلة'),
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          // خلفية بتدرج لوني جذاب
-          gradient: LinearGradient(
-            colors: [Colors.black, Colors.black],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+    if (_errorMessage.isNotEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 50),
+              const SizedBox(height: 16),
+              Text(
+                _errorMessage,
+                style: const TextStyle(color: Colors.red, fontSize: 18),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryColor,
+                ),
+                onPressed: _fetchTrips,
+                child: const Text('Retry', style: TextStyle(color: Colors.white)),
+              ),
+            ],
           ),
         ),
+      );
+    }
+
+    if (_trips.isEmpty) {
+      return Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // الجزء العلوي: عرض الخريطة مع تتبع المسار
-            Expanded(
-              flex: 2,
-              child: FlutterMap(
-                mapController: _mapController,
-                options: MapOptions(
-                  center: center,
-                  zoom: 15,
-                ),
+            const Icon(Icons.travel_explore, size: 60, color: Colors.grey),
+            const SizedBox(height: 16),
+            const Text(
+              'No trips available',
+              style: TextStyle(fontSize: 18, color: Colors.grey),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: _fetchTrips,
+              child: Text('Check again',
+                  style: TextStyle(color: primaryColor)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _fetchTrips,
+      child: ListView.separated(
+        padding: const EdgeInsets.all(16),
+        itemCount: _trips.length,
+        separatorBuilder: (context, index) => const SizedBox(height: 16),
+        itemBuilder: (context, index) {
+          final trip = _trips[index];
+          return _buildTripCard(trip);
+        },
+      ),
+    );
+  }
+
+  Widget _buildTripCard(Map<String, dynamic> trip) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => TripDetailsScreen(tripData: trip, primaryColor: primaryColor),
+            ),
+          );
+        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildMapPreview(trip),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  TileLayer(
-                    urlTemplate:
-                    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                    subdomains: ['a', 'b', 'c'],
-                    userAgentPackageName: 'com.example.app',
-                  ),
-                  PolylineLayer(
-                    polylines: [
-                      Polyline(
-                        points: _route,
-                        strokeWidth: 4.0,
-                        color: Colors.blueAccent,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Trip #${trip['id']}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Chip(
+                        label: Text(
+                          _getStatusText(trip['status'] ?? ''),
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor: _getStatusColor(trip['status'] ?? ''),
                       ),
                     ],
                   ),
-                  MarkerLayer(
-                    markers: _route.isNotEmpty
-                        ? [
-                      Marker(
-                        point: _route.last,
-                        width: 80,
-                        height: 80,
-                        builder: (context) => const Icon(
-                          Icons.location_on,
-                          color: Colors.redAccent,
-                          size: 40,
+                  const SizedBox(height: 12),
+                  _buildTripInfoRow(
+                      Icons.location_on, 'From:', trip['from_location']),
+                  _buildTripInfoRow(
+                      Icons.location_pin, 'To:', trip['to_location']),
+                  _buildTripInfoRow(Icons.access_time, 'Departure:',
+                      _formatDate(trip['departure_time'])),
+                  _buildTripInfoRow(Icons.attach_money, 'Price:',
+                      '${trip['price_per_seat']} SAR'),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                    ]
-                        : [],
+                      onPressed: () {},
+                      child: const Text('View Details',
+                          style: TextStyle(color: Colors.white)),
+                    ),
                   ),
                 ],
               ),
             ),
-            // الجزء السفلي: عرض قائمة بيانات الرحلة المستلمة
-            Expanded(
-              flex: 1,
-              child: _trips.isEmpty
-                  ? const Center(
-                child: Text(
-                  'في انتظار بيانات الرحلة...',
-                  style: TextStyle(color: Colors.white, fontSize: 18),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMapPreview(Map<String, dynamic> trip) {
+    final startPoint = _parseLocation(trip['from_location']);
+    final endPoint = _parseLocation(trip['to_location']);
+
+    return SizedBox(
+      height: 150,
+      child: FlutterMap(
+        options: MapOptions(
+          center: startPoint,
+          zoom: 10.0,
+          interactiveFlags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+        ),
+        children: [
+          TileLayer(
+            urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+            subdomains: const ['a', 'b', 'c'],
+            userAgentPackageName: 'com.example.app',
+          ),
+          MarkerLayer(
+            markers: [
+              Marker(
+                point: startPoint,
+                width: 30,
+                height: 30,
+                builder: (ctx) => Icon(
+                  Icons.location_pin,
+                  color: primaryColor,
+                  size: 30,
                 ),
-              )
-                  : ListView.builder(
-                itemCount: _trips.length,
-                itemBuilder: (context, index) {
-                  final trip = _trips[index];
-                  return Card(
-                    margin: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    elevation: 4,
-                    child: ListTile(
-                      leading: const Icon(
-                        Icons.navigation,
-                        color: Colors.deepPurple,
-                      ),
-                      title: Text(
-                        "Lat: ${trip['lat']}\nLng: ${trip['lng']}",
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                      subtitle: Text(
-                        "Altitude: ${trip['altitude'] ?? 'N/A'}\nSpeed: ${trip['speed'] ?? 'N/A'}",
-                      ),
+              ),
+              Marker(
+                point: endPoint,
+                width: 30,
+                height: 30,
+                builder: (ctx) => const Icon(
+                  Icons.location_pin,
+                  color: Colors.red,
+                  size: 30,
+                ),
+              ),
+            ],
+          ),
+          PolylineLayer(
+            polylines: [
+              Polyline(
+                points: [startPoint, endPoint],
+                color: primaryColor.withOpacity(0.7),
+                strokeWidth: 3,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTripInfoRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: primaryColor),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 16),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.end,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(String dateString) {
+    try {
+      final date = DateTime.parse(dateString).toLocal();
+      return DateFormat('MMM dd, yyyy - hh:mm a').format(date);
+    } catch (e) {
+      return dateString;
+    }
+  }
+
+  String _getStatusText(String status) {
+    switch (status) {
+      case 'available':
+        return 'Available';
+      case 'full':
+        return 'Full';
+      case 'in_progress':
+        return 'In Progress';
+      default:
+        return status;
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'available':
+        return Colors.green;
+      case 'full':
+        return Colors.orange;
+      case 'in_progress':
+        return primaryColor;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  LatLng _parseLocation(String loc) {
+    try {
+      final coords = loc.split(',');
+      return LatLng(
+        double.parse(coords[0].trim()),
+        double.parse(coords[1].trim()),
+      );
+    } catch (e) {
+      return const LatLng(24.7136, 46.6753); // Default to Riyadh coordinates
+    }
+  }
+}
+
+class TripDetailsScreen extends StatefulWidget {
+  final Map<String, dynamic> tripData;
+  final Color primaryColor;
+
+  const TripDetailsScreen({
+    super.key,
+    required this.tripData,
+    required this.primaryColor,
+  });
+
+  @override
+  State<TripDetailsScreen> createState() => _TripDetailsScreenState();
+}
+
+class _TripDetailsScreenState extends State<TripDetailsScreen> {
+  late MapController _mapController;
+  List<LatLng> _routePoints = [];
+  bool _isMapLoading = true;
+  double _mapHeight = 300;
+  bool _useOSRM = true; // Flag to switch between simple and OSRM routing
+
+  @override
+  void initState() {
+    super.initState();
+    _mapController = MapController();
+    _parseRouteCoordinates();
+  }
+
+  void _parseRouteCoordinates() async {
+    try {
+      final coords = widget.tripData['route_coordinates']?.toString() ?? '';
+
+      if (coords.isNotEmpty) {
+        // Use existing coordinates if available
+        final parsed = jsonDecode(coords) as List;
+        setState(() {
+          _routePoints = parsed.map<LatLng>((point) {
+            return LatLng(
+              double.parse(point['lat'].toString()),
+              double.parse(point['lng'].toString()),
+            );
+          }).toList();
+          _isMapLoading = false;
+        });
+      } else if (_useOSRM) {
+        // Fetch route from OSRM API if no coordinates available
+        await _fetchOSRMRoute();
+      } else {
+        // Fallback to simple straight line
+        final start = _parseLocation(widget.tripData['from_location']);
+        final end = _parseLocation(widget.tripData['to_location']);
+        setState(() {
+          _routePoints = [start, end];
+          _isMapLoading = false;
+        });
+      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _zoomToFitRoute();
+      });
+    } catch (e) {
+      debugPrint('Error parsing route: $e');
+      final start = _parseLocation(widget.tripData['from_location']);
+      final end = _parseLocation(widget.tripData['to_location']);
+      setState(() {
+        _routePoints = [start, end];
+        _isMapLoading = false;
+      });
+    }
+  }
+
+  Future<void> _fetchOSRMRoute() async {
+    try {
+      final start = _parseLocation(widget.tripData['from_location']);
+      final end = _parseLocation(widget.tripData['to_location']);
+
+      final uri = Uri.parse(
+          'http://router.project-osrm.org/route/v1/driving/'
+              '${start.longitude},${start.latitude};'
+              '${end.longitude},${end.latitude}?overview=full&geometries=geojson'
+      );
+
+      final response = await http.get(uri).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final geometry = data['routes'][0]['geometry']['coordinates'] as List;
+
+        setState(() {
+          _routePoints = geometry.map<LatLng>((coord) {
+            return LatLng(coord[1].toDouble(), coord[0].toDouble());
+          }).toList();
+          _isMapLoading = false;
+        });
+
+        _zoomToFitRoute();
+      } else {
+        throw Exception('OSRM API error: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error fetching OSRM route: $e');
+      final start = _parseLocation(widget.tripData['from_location']);
+      final end = _parseLocation(widget.tripData['to_location']);
+      setState(() {
+        _routePoints = [start, end];
+        _isMapLoading = false;
+      });
+    }
+  }
+
+  void _zoomToFitRoute() {
+    if (_routePoints.isNotEmpty ) {
+      final bounds = LatLngBounds.fromPoints(_routePoints);
+      _mapController.fitBounds(
+        bounds,
+        options: FitBoundsOptions(
+          padding: const EdgeInsets.all(100),
+          maxZoom: 15,
+        ),
+      );
+    }
+  }
+
+  LatLng _parseLocation(String loc) {
+    try {
+      final coords = loc.split(',');
+      return LatLng(
+        double.parse(coords[0].trim()),
+        double.parse(coords[1].trim()),
+      );
+    } catch (e) {
+      return const LatLng(24.7136, 46.6753); // Default to Riyadh coordinates
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final trip = widget.tripData;
+    final startPoint = _parseLocation(trip['from_location']);
+    final endPoint = _parseLocation(trip['to_location']);
+
+    return Scaffold(
+      body: Column(
+        children: [
+          Expanded(
+            child: CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  expandedHeight: _mapHeight,
+                  flexibleSpace: FlexibleSpaceBar(
+                    background: _buildMap(startPoint, endPoint),
+                  ),
+                  pinned: true,
+                  backgroundColor: widget.primaryColor,
+                  actions: [
+                    IconButton(
+                      icon: const Icon(Icons.fullscreen),
+                      onPressed: () {
+                        setState(() {
+                          _mapHeight = _mapHeight == 300 ? 500 : 300;
+                        });
+                      },
                     ),
-                  );
+                    IconButton(
+                      icon: Icon(_useOSRM ? Icons.map : Icons.straight),
+                      onPressed: () {
+                        setState(() {
+                          _useOSRM = !_useOSRM;
+                          _isMapLoading = true;
+                        });
+                        _parseRouteCoordinates();
+                      },
+                      tooltip: 'Toggle Routing',
+                    ),
+                  ],
+                ),
+                SliverToBoxAdapter(
+                  child: _buildTripDetails(trip),
+                ),
+              ],
+            ),
+          ),
+          _buildActionButtons(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMap(LatLng startPoint, LatLng endPoint) {
+    return Stack(
+      children: [
+        FlutterMap(
+          mapController: _mapController,
+          options: MapOptions(
+            center: startPoint,
+            zoom: 13.0,
+            interactiveFlags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+            onMapReady: _zoomToFitRoute,
+            onPositionChanged: (MapPosition position, bool hasGesture) {
+              // Handle map movement
+            },
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+              subdomains: const ['a', 'b', 'c'],
+              userAgentPackageName: 'com.example.app',
+            ),
+            if (!_isMapLoading && _routePoints.isNotEmpty)
+              PolylineLayer(
+                polylines: [
+                  Polyline(
+                    points: _routePoints,
+                    color: widget.primaryColor.withOpacity(0.7),
+                    strokeWidth: 5,
+                    borderColor: Colors.white,
+                    borderStrokeWidth: 2,
+                  ),
+                ],
+              ),
+            if (!_isMapLoading)
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: startPoint,
+                    width: 50,
+                    height: 50,
+                    builder: (ctx) => Icon(
+                      Icons.location_pin,
+                      color: widget.primaryColor,
+                      size: 40,
+                    ),
+                  ),
+                  Marker(
+                    point: endPoint,
+                    width: 50,
+                    height: 50,
+                    builder: (ctx) => const Icon(
+                      Icons.location_pin,
+                      color: Colors.red,
+                      size: 40,
+                    ),
+                  ),
+                  if (_routePoints.length > 2)
+                    ..._routePoints
+                        .sublist(1, _routePoints.length - 1)
+                        .map((point) => Marker(
+                      point: point,
+                      width: 30,
+                      height: 30,
+                      builder: (ctx) => Icon(
+                        Icons.location_on,
+                        color: widget.primaryColor,
+                        size: 30,
+                      ),
+                    ))
+                        .toList(),
+                ],
+              ),
+          ],
+        ),
+        if (_isMapLoading)
+          const Center(child: CircularProgressIndicator()),
+        Positioned(
+          bottom: 16,
+          right: 16,
+          child: Column(
+            children: [
+              FloatingActionButton(
+                mini: true,
+                heroTag: 'zoomIn',
+                onPressed: () {
+
                 },
+                child: const Icon(Icons.add),
+              ),
+              const SizedBox(height: 8),
+              FloatingActionButton(
+                mini: true,
+                heroTag: 'zoomOut',
+                onPressed: () {
+
+                },
+                child: const Icon(Icons.remove),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTripDetails(Map<String, dynamic> trip) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Trip Details',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildDetailCard('Departure', Icons.location_on, trip['from_location']),
+          _buildDetailCard('Destination', Icons.location_pin, trip['to_location']),
+          const SizedBox(height: 16),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _buildDetailChip(
+                  Icons.access_time, 'Departure', _formatDate(trip['departure_time'])),
+              _buildDetailChip(
+                  Icons.airline_seat_recline_normal, 'Seats', '${trip['available_seats']}'),
+              _buildDetailChip(
+                  Icons.directions_car, 'Distance', '${trip['distance_km'] ?? 'N/A'} km'),
+              _buildDetailChip(Icons.attach_money, 'Price',
+                  '${trip['price_per_seat']} SAR per seat'),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildStatusIndicator(trip['status'] ?? ''),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailCard(String title, IconData icon, String value) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Icon(icon, color: widget.primaryColor),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -409,89 +741,138 @@ class _TripDetailsPageState extends State<TripDetailsPage> {
       ),
     );
   }
-}
 
-/// خدمة MQTT تستخدم قناة (Channel) لتوزيع الرسائل الواردة
-class MqttChannelService {
-  // بيانات خادم HiveMQ Cloud
-  final String server = 'nahari-m1qoxs.a03.euc1.aws.hivemq.cloud';
-  final int port = 8883; // المنفذ الآمن
-  final String clientId = 'flutter_modern_ui_client';
-  // بيانات الاعتماد (استبدلها ببيانات حسابك)
-  final String username = 'hivemq.client.1740007217404';
-  final String password = 'N@VG3:C7dBh#Qgze0<j5';
-
-  late MqttServerClient client;
-  final StreamController<String> _messageController =
-  StreamController<String>.broadcast();
-
-  // تدفق الرسائل العام (Channel)
-  Stream<String> get messageStream => _messageController.stream;
-
-  MqttChannelService() {
-    client = MqttServerClient.withPort(server, clientId, port)
-      ..secure = true
-      ..keepAlivePeriod = 20
-      ..logging(on: true)
-      ..onConnected = onConnected
-      ..onDisconnected = onDisconnected
-      ..onSubscribed = onSubscribed;
+  Widget _buildDetailChip(IconData icon, String label, String value) {
+    return Chip(
+      avatar: Icon(icon, size: 18, color: widget.primaryColor),
+      label: Text('$label: $value'),
+      backgroundColor: Colors.grey[100],
+    );
   }
 
-  Future<void> connect() async {
-    try {
-      client.connectionMessage = MqttConnectMessage()
-          .withClientIdentifier(clientId)
-          .authenticateAs(username, password)
-          .startClean()
-          .withWillQos(MqttQos.atMostOnce);
-      await client.connect();
-      if (client.connectionStatus!.state == MqttConnectionState.connected) {
-        print('✅ تم الاتصال بـ MQTT Broker');
-        subscribeToTopic('flutter/test');
-      } else {
-        print('❌ فشل الاتصال: ${client.connectionStatus}');
-        disconnect();
-      }
-    } catch (e) {
-      print('❌ خطأ أثناء الاتصال: $e');
-      disconnect();
+  Widget _buildStatusIndicator(String status) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: _getStatusColor(status).withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _getStatusColor(status),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            _getStatusIcon(status),
+            color: _getStatusColor(status),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            _getStatusText(status),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: _getStatusColor(status),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'available':
+        return Icons.check_circle;
+      case 'full':
+        return Icons.do_not_disturb;
+      case 'in_progress':
+        return Icons.directions_car;
+      case 'completed':
+        return Icons.verified;
+      default:
+        return Icons.help_outline;
     }
   }
 
-  void disconnect() {
-    client.disconnect();
-    print('❌ تم قطع الاتصال');
-    _messageController.close();
+  Widget _buildActionButtons() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Expanded(
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.message, color: Colors.white),
+              label: const Text('Contact Driver',
+                  style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: widget.primaryColor,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () {},
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.bookmark, color: Colors.white),
+              label: const Text('Book Trip',
+                  style: TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () {},
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
-  void onConnected() {
-    print('✅ تم الاتصال بنجاح');
+  String _formatDate(String dateString) {
+    try {
+      final date = DateTime.parse(dateString).toLocal();
+      return DateFormat('MMM dd, yyyy - hh:mm a').format(date);
+    } catch (e) {
+      return dateString;
+    }
   }
 
-  void onDisconnected() {
-    print('❌ تم قطع الاتصال');
+  String _getStatusText(String status) {
+    switch (status) {
+      case 'available':
+        return 'Available';
+      case 'full':
+        return 'Full';
+      case 'in_progress':
+        return 'In Progress';
+      case 'completed':
+        return 'Completed';
+      default:
+        return status;
+    }
   }
 
-  void onSubscribed(String topic) {
-    print('✅ تم الاشتراك في الموضوع: $topic');
-  }
-
-  void subscribeToTopic(String topic) {
-    client.subscribe(topic, MqttQos.atMostOnce);
-    client.updates!.listen((List<MqttReceivedMessage<MqttMessage>> events) {
-      final recMess = events[0].payload as MqttPublishMessage;
-      final pt =
-      MqttPublishPayload.bytesToStringAsString(recMess.payload.message);
-      print('📩 رسالة جديدة من $topic: $pt');
-      _messageController.sink.add(pt);
-    });
-  }
-
-  void publishMessage(String topic, String message) {
-    final builder = MqttClientPayloadBuilder();
-    builder.addString(message);
-    client.publishMessage(topic, MqttQos.atMostOnce, builder.payload!);
-    print('📤 تم إرسال: $message إلى $topic');
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'available':
+        return Colors.green;
+      case 'full':
+        return Colors.orange;
+      case 'in_progress':
+        return widget.primaryColor;
+      case 'completed':
+        return Colors.purple;
+      default:
+        return Colors.grey;
+    }
   }
 }

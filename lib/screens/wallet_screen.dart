@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
-import 'package:untitled5/screens/profile.dart';
-import 'package:untitled5/screens/trip_tracking_screen.dart';
+import '../screens/profile.dart';
+import '../screens/trip_tracking_screen.dart';
 import '../main.dart';
 import '../services/AuthService.dart';
 import '../services/ip.dart';
@@ -96,7 +96,7 @@ class _WalletPageState extends State<WalletPage> {
         children: [
           Positioned(top: 20, right: 20, child: Icon(Icons.credit_card, size: 50, color: Colors.white30)),
           Positioned(bottom: -20, left: -20, child: _buildCircle()),
-        Padding(
+          Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,6 +150,41 @@ class _WalletPageState extends State<WalletPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('الإشعارات'),
+        actions: [
+          // أيقونة الإشعارات + Badge
+          Consumer<NotificationProvider>(
+            builder: (_, prov, __) {
+              return IconButton(
+                onPressed: () => Navigator.pushNamed(context, '/Notifications'),
+                icon: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    const Icon(Icons.notifications),
+                    if (prov.unreadCount > 0)
+                      Positioned(
+                        right: -2,
+                        top: -2,
+                        child: CircleAvatar(
+                          radius: 8,
+                          backgroundColor: Colors.redAccent,
+                          child: Text(
+                            prov.unreadCount.toString(),
+                            style: const TextStyle(fontSize: 10, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              );
+            },
+          ),
+          // زر التحديث
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchWalletData),
+        ],
+      ),
+
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage.isNotEmpty
@@ -157,7 +192,7 @@ class _WalletPageState extends State<WalletPage> {
           : Column(
         children: [
           SafeArea(child: _buildWalletDetails()),
-          _buildRefreshBar(),
+          SizedBox(height: 15,),
           _buildServiceGrid(),
           _buildBottomNavigation(),
         ],
@@ -165,20 +200,6 @@ class _WalletPageState extends State<WalletPage> {
     );
   }
 
-  Widget _buildRefreshBar() {
-    return Container(
-      width: double.infinity,
-      color: Colors.black12,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text('تحديث البيانات', style: TextStyle(color: Colors.black)),
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchWalletData),
-        ],
-      ),
-    );
-  }
 
   Widget _buildServiceGrid() {
     return Expanded(
@@ -204,30 +225,6 @@ class _WalletPageState extends State<WalletPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Consumer<NotificationProvider>(
-            builder: (_, prov, __) => Stack(
-              alignment: Alignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.notifications),
-                  onPressed: () => Navigator.pushNamed(context, '/Notifications'),
-                ),
-                if (prov.unreadCount > 0)
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: CircleAvatar(
-                      radius: 8,
-                      backgroundColor: Colors.redAccent,
-                      child: Text(
-                        prov.unreadCount.toString(),
-                        style: const TextStyle(fontSize: 10, color: Colors.white),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
 
           _buildActionButton("رسائل", FontAwesomeIcons.box, () {}),
           const SizedBox(width: 20),
@@ -311,7 +308,7 @@ class __ServiceCardState extends State<_ServiceCard> with SingleTickerProviderSt
           );
         }
         else if (title.contains("سجل الرحلات")) {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const BookingsPage()));
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const TripsScreen()));
         } else if (title.contains("بيانات التسجيل")) {
           Navigator.push(context, MaterialPageRoute(builder: (_) =>  UserProfilePage()));
         } else if (title.contains("شكوى") || title.contains("تقييم")) {
